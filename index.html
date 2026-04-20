@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Wasteland Apocalypse - Survival RPG</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="crosshair"></div>
+    <div class="fog-overlay" id="fogOverlay"></div>
+    <div class="vignette"></div>
+    <div class="scanlines"></div>
+    <div class="chaos-effect"></div>
+
+    <!-- Top‑Left UI -->
+    <div class="ui-top-left">
+        <div class="health-container">
+            <div class="health-label">❤️ HEALTH</div>
+            <div class="health-bar-bg">
+                <div class="health-bar-fill" id="healthFill"></div>
+            </div>
+            <div class="health-value" id="healthValue">100</div>
+        </div>
+        <div class="weapon-container">
+            <div class="weapon-icon" id="weaponIcon">🔫</div>
+            <div class="weapon-info">
+                <div class="weapon-name" id="weaponName">MACHINE GUN</div>
+                <div class="ammo-display">
+                    <span class="ammo-current" id="ammoCurrent">30</span>
+                    <span class="ammo-sep">/</span>
+                    <span class="ammo-total" id="ammoTotal">120</span>
+                </div>
+            </div>
+            <div class="ammo-bar-container">
+                <div class="ammo-bar-bg">
+                    <div class="ammo-bar-fill" id="ammoFill"></div>
+                </div>
+            </div>
+        </div>
+        <div class="molotov-container">
+            <div class="molotov-icon">🔥</div>
+            <div class="molotov-count" id="molotovCount">3</div>
+            <div class="molotov-key">[F]</div>
+        </div>
+        <div class="kills-container">
+            <div class="kills-icon">💀</div>
+            <div class="kills-info">
+                <div class="kills-label">TOTAL KILLS</div>
+                <div class="kills-value" id="killsValue">0</div>
+            </div>
+        </div>
+        <!-- Score display (added) -->
+        <div class="stats-container">
+            <div class="stat-item">
+                <div class="stat-label">SCORE</div>
+                <div class="stat-value" id="scoreValue">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reload circular (bottom right) -->
+    <div class="reload-circular" id="reloadCircular">
+        <svg class="reload-svg" viewBox="0 0 100 100">
+            <circle class="reload-bg" cx="50" cy="50" r="45" />
+            <circle class="reload-progress" id="reloadProgressCircle" cx="50" cy="50" r="45" />
+        </svg>
+        <div class="reload-text">R</div>
+    </div>
+
+    <!-- Warnings -->
+    <div class="warning low-ammo" id="lowAmmoWarning"><span>⚠️ RELOAD! ⚠️</span></div>
+    <div class="warning low-health" id="lowHealthWarning"><span>💀 CRITICAL HEALTH 💀</span></div>
+
+    <!-- Damage flash & hit marker -->
+    <div class="damage-flash" id="damageFlash"></div>
+    <div class="hit-marker" id="hitMarker"></div>
+
+    <!-- Controls hint (bottom right) -->
+    <div class="controls-hint">
+        <div class="control-key">WASD</div><span>✦</span>
+        <div class="control-key">🖱️ AIM</div><span>✦</span>
+        <div class="control-key">🔫 HOLD LMB</div><span>✦</span>
+        <div class="control-key">R RELOAD</div><span>✦</span>
+        <div class="control-key">F 🔥</div><span>✦</span>
+        <div class="control-key">P ⏸️</div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
