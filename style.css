@@ -96,3 +96,49 @@ body {
     0% { opacity: 0.5; background-position: 0% 0%; }
     100% { opacity: 0.8; background-position: 5% 5%; }
 }
+
+.vignette {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, transparent 50%, rgba(0, 0, 0, 0.7) 100%);
+    pointer-events: none;
+    z-index: 15;
+}
+
+.scanlines {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15) 0px,
+        rgba(0, 0, 0, 0.15) 2px,
+        transparent 2px,
+        transparent 4px
+    );
+    pointer-events: none;
+    z-index: 18;
+    opacity: 0.4;
+}
+
+.chaos-effect {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-radial-gradient(
+        circle at 50% 50%,
+        rgba(255, 50, 0, 0.03) 0px,
+        rgba(255, 100, 0, 0.05) 50px,
+        transparent 100px
+    );
+    pointer-events: none;
+    z-index: 17;
+    animation: chaosPulse 3s ease-in-out infinite;
+}
