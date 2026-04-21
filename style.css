@@ -392,3 +392,44 @@ body {
     font-family: 'Press Start 2P', monospace;
 }
 
+.warning {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-align: center;
+    z-index: 300;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.low-ammo {
+    background: rgba(255, 100, 0, 0.95);
+    color: #000;
+    box-shadow: 0 0 20px rgba(255, 100, 0, 0.8);
+    border: 1px solid #ffcc00;
+}
+
+.low-health {
+    background: rgba(220, 38, 38, 0.95);
+    color: white;
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.8);
+    border: 1px solid #ff6666;
+}
+
+.warning.active {
+    opacity: 1;
+    animation: warningPulse 0.5s ease-in-out 3;
+}
+
+@keyframes warningPulse {
+    0%, 100% { transform: translateX(-50%) scale(1); opacity: 1; }
+    50% { transform: translateX(-50%) scale(1.05); opacity: 0.8; }
+}
