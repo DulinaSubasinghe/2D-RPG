@@ -1,0 +1,98 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+}
+
+body {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a0f0a 100%);
+    min-height: 100vh;
+    overflow: hidden;
+    position: relative;
+}
+
+#gameCanvas {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: none;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    image-rendering: optimizeSpeed;
+}
+
+#crosshair {
+    position: fixed;
+    width: 32px;
+    height: 32px;
+    pointer-events: none;
+    z-index: 1000;
+    transform: translate(-50%, -50%);
+}
+
+#crosshair::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+/* Plus Sign - Vertical Line */
+#crosshair::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2px;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+}
+
+#crosshair .dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 12px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.95);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+}
+
+.fog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        180deg,
+        rgba(80, 70, 60, 0.3) 0%,
+        rgba(60, 50, 40, 0.4) 30%,
+        rgba(40, 35, 30, 0.5) 60%,
+        rgba(30, 25, 20, 0.6) 100%
+    );
+    pointer-events: none;
+    z-index: 20;
+    mix-blend-mode: overlay;
+    animation: fogMove 20s ease-in-out infinite alternate;
+}
+
+@keyframes fogMove {
+    0% { opacity: 0.5; background-position: 0% 0%; }
+    100% { opacity: 0.8; background-position: 5% 5%; }
+}
