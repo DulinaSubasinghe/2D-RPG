@@ -531,3 +531,43 @@ body {
     0%, 100% { filter: drop-shadow(0 0 5px #ff4400); }
     50% { filter: drop-shadow(0 0 15px #ff6600); }
 }
+
+@media (max-width: 768px) {
+    .ui-top-left {
+        padding: 8px 12px;
+        min-width: 180px;
+    }
+    
+    .health-value {
+        font-size: 10px;
+    }
+    
+    .ammo-current {
+        font-size: 12px;
+    }
+    
+    .reload-circular {
+        bottom: 20px;
+        right: 20px;
+        width: 45px;
+        height: 45px;
+    }
+    
+    .warning {
+        font-size: 10px;
+        padding: 8px 16px;
+        white-space: nowrap;
+    }
+    
+    .controls-hint {
+        display: none;
+    }
+    
+    .stats-container {
+        gap: 10px;
+    }
+    
+    .stat-value {
+        font-size: 11px;
+    }
+}
