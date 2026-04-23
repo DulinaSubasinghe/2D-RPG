@@ -279,3 +279,160 @@ class Game {
             this.paused = !this.paused;
         }
     }
+    drawPauseMenu() {
+        if (!this.paused) return;
+        
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        this.ctx.fillStyle = '#ffaa44';
+        this.ctx.font = 'bold 48px "Press Start 2P", monospace';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('PAUSED', this.canvas.width / 2, this.canvas.height / 2 - 80);
+        
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = '20px "Share Tech Mono", monospace';
+        this.ctx.fillText('Press [P] to Resume', this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.fillText('Press [R] to Reload', this.canvas.width / 2, this.canvas.height / 2 + 40);
+        this.ctx.fillText('Press [F] to Throw Molotov', this.canvas.width / 2, this.canvas.height / 2 + 80);
+        this.ctx.fillText('Scroll Wheel to Switch Weapons', this.canvas.width / 2, this.canvas.height / 2 + 120);
+        
+        this.ctx.fillStyle = '#ffaa44';
+        this.ctx.font = '14px "Press Start 2P", monospace';
+        this.ctx.fillText(`SCORE: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2 + 180);
+        this.ctx.fillText(`KILLS: ${this.kills}`, this.canvas.width / 2, this.canvas.height / 2 + 210);
+        this.ctx.textAlign = 'left';
+    }
+    
+    drawTutorial() {
+        if (!this.showTutorial) return;
+        
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        this.ctx.fillStyle = '#ffaa44';
+        this.ctx.font = 'bold 28px "Press Start 2P", monospace';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('SURVIVAL GUIDE', this.canvas.width / 2, 80);
+        
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = '16px "Share Tech Mono", monospace';
+        const instructions = [
+            'WASD - Move around',
+            'Mouse - Aim',
+            'Hold LMB - Shoot',
+            'Scroll Wheel - Switch weapons',
+            'R - Reload',
+            'F - Throw Molotov',
+            'P - Pause',
+            '',
+            'Kill zombies to progress waves',
+            'Boss appears every 3 waves!',
+            '',
+            'Click anywhere to start'
+        ];
+        for (let i = 0; i < instructions.length; i++) {
+            this.ctx.fillText(instructions[i], this.canvas.width / 2, 160 + i * 35);
+        }
+        
+        this.ctx.textAlign = 'left';
+    }
+    
+    closeTutorial() {
+        this.showTutorial = false;
+        localStorage.setItem('tutorialSeen', 'true');
+    }
+    
+    drawMinimap() {
+        const mapX = this.canvas.width - this.minimapSize - 20;
+        const mapY = 20;
+        const mapSize = this.minimapSize;
+        const centerX = mapX + mapSize / 2;
+        const centerY = mapY + mapSize / 2;
+        
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        this.ctx.fillRect(mapX, mapY, mapSize, mapSize);
+        this.ctx.strokeStyle = '#ffaa44';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(mapX, mapY, mapSize, mapSize);
+        
+        const worldToMap = (worldX, worldY) => {
+            const relativeX = (worldX - this.camera.x) * this.minimapZoom;
+            const relativeY = (worldY - this.camera.y) * this.minimapZoom;
+            return { x: centerX + relativeX, y: centerY + relativeY };
+        };
+        
+        this.ctx.fillStyle = '#2d6a2c';
+        for (let tree of this.trees) {
+            const pos = worldToMap(tree.x, tree.y);
+            if (pos.x > mapX && pos.x < mapX + mapSize && pos.y > mapY && pos.y < mapY + mapSize) {
+                this.ctx.fillRect(pos.x - 1, pos.y - 1, 2, 2);
+            }
+        }
+        
+        this.ctx.fillStyle = '#6a5a4a';
+        for (let struct of this.structures) {
+            const pos = worldToMap(struct.x + struct.width/2, struct.y + struct.height/2);
+            if (pos.x > mapX && pos.x < mapX + mapSize && pos.y > mapY && pos.y < mapY + mapSize) {
+                this.ctx.fillRect(pos.x - 2, pos.y - 2, 4, 4);
+            }
+        }
+        
+        for (let enemy of this.enemies) {
+            const pos = worldToMap(enemy.x, enemy.y);
+            if (pos.x > mapX && pos.x < mapX + mapSize && pos.y > mapY && pos.y < mapY + mapSize) {
+                this.ctx.fillStyle = '#ff0000';
+                this.ctx.beginPath();
+                this.ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+                this.ctx.beginPath();
+                this.ctx.arc(pos.x, pos.y, 5 + Math.sin(Date.now() * 0.005) * 1, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        }
+        
+        const playerPos = worldToMap(this.player.x + this.player.size/2, this.player.y + this.player.size/2);
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.beginPath();
+        this.ctx.arc(playerPos.x, playerPos.y, 4, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        const angle = Math.atan2(this.mouseWorld.y - this.player.y, this.mouseWorld.x - this.player.x);
+        this.ctx.strokeStyle = '#ffffff';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(playerPos.x, playerPos.y);
+        this.ctx.lineTo(playerPos.x + Math.cos(angle) * 6, playerPos.y + Math.sin(angle) * 6);
+        this.ctx.stroke();
+        
+        for (let zone of this.fireZones) {
+            const pos = worldToMap(zone.x, zone.y);
+            if (pos.x > mapX && pos.x < mapX + mapSize && pos.y > mapY && pos.y < mapY + mapSize) {
+                this.ctx.fillStyle = '#ff6600';
+                this.ctx.beginPath();
+                this.ctx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        }
+        
+        for (let ammo of this.ammoPickups) {
+            const pos = worldToMap(ammo.x, ammo.y);
+            if (pos.x > mapX && pos.x < mapX + mapSize && pos.y > mapY && pos.y < mapY + mapSize) {
+                this.ctx.fillStyle = '#ffcc00';
+                this.ctx.fillRect(pos.x - 2, pos.y - 2, 4, 4);
+            }
+        }
+        
+        for (let pickup of this.molotovPickups) {
+            const pos = worldToMap(pickup.x, pickup.y);
+            if (pos.x > mapX && pos.x < mapX + mapSize && pos.y > mapY && pos.y < mapY + mapSize) {
+                this.ctx.fillStyle = '#ff8800';
+                this.ctx.fillRect(pos.x - 2, pos.y - 2, 4, 4);
+            }
+        }
+        
+        this.ctx.fillStyle = '#ffaa44';
+        this.ctx.font = '8px "Press Start 2P", monospace';
+        this.ctx.fillText('RADAR', mapX + 5, mapY + 15);
+    }
