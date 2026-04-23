@@ -105,7 +105,7 @@ class Game {
         this.waveMessage = "";
         this.waveMessageTimer = 0;
         this.bossSpawned = false;
-        this.waveSpawningComplete = true; // NEW: track if all enemies of current wave have been spawned
+        this.waveSpawningComplete = true;
 
         this.paused = false;
         this.minimapSize = 180;
@@ -155,4 +155,127 @@ class Game {
         this.setupAudio();
         this.updateUI();
         this.gameLoop();
+    }
+    setupAudio() {
+        document.body.addEventListener('click', () => {
+            if (!this.audioContext) {
+                this.initAudio();
+                this.playSound('pickup', 0.1);
+            }
+        }, { once: true });
+    }
+    
+    initAudio() {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.loadGunshotSound();
+    }
+
+    loadGunshotSound() {
+        this.gunshotSound = new Audio();
+        this.gunshotSound.src = '415912__okieactor__heathers-gunshot-effect2.wav';
+        this.gunshotSound.preload = 'auto';
+        this.gunshotSound.onerror = () => { this.gunshotSound = null; };
+        
+        this.reloadSound = new Audio();
+        this.reloadSound.src = '276964__gfl7__m4a1-or-m16-reload-sound.mp3';
+        this.reloadSound.preload = 'auto';
+        this.reloadSound.onerror = () => { this.reloadSound = null; };
+        
+        this.clickSound = new Audio();
+        this.clickSound.src = '113636__edgardedition__click6.wav';
+        this.clickSound.preload = 'auto';
+        this.clickSound.onerror = () => { this.clickSound = null; };
+    }
+    
+    resumeAudio() {
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            this.audioContext.resume();
+        }
+    }
+    
+    playSound(type, volume = 0.3) {
+        if (!this.audioContext || !this.soundsEnabled) return;
+        this.resumeAudio();
+        
+        if (type === 'gunshot' && this.gunshotSound) {
+            const clone = new Audio();
+            clone.src = this.gunshotSound.src;
+            clone.volume = volume;
+            clone.play().catch(() => {});
+            return;
+        }
+        
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(this.audioContext.destination);
+        gain.gain.value = volume;
+        
+        switch(type) {
+            case 'zombie':
+                osc.frequency.value = 70 + Math.random() * 40;
+                gain.gain.exponentialRampToValueAtTime(0.00001, this.audioContext.currentTime + 0.6);
+                osc.type = 'sawtooth';
+                break;
+            case 'death':
+                osc.frequency.value = 120;
+                gain.gain.exponentialRampToValueAtTime(0.00001, this.audioContext.currentTime + 0.4);
+                osc.type = 'square';
+                break;
+            case 'hit':
+                osc.frequency.value = 300;
+                gain.gain.exponentialRampToValueAtTime(0.00001, this.audioContext.currentTime + 0.15);
+                osc.type = 'triangle';
+                break;
+            case 'pickup':
+                osc.frequency.value = 800;
+                gain.gain.exponentialRampToValueAtTime(0.00001, this.audioContext.currentTime + 0.2);
+                osc.type = 'sine';
+                break;
+            case 'reload':
+                osc.frequency.value = 400;
+                gain.gain.exponentialRampToValueAtTime(0.00001, this.audioContext.currentTime + 0.3);
+                osc.type = 'sine';
+                break;
+            case 'hurt':
+                osc.frequency.value = 100;
+                gain.gain.exponentialRampToValueAtTime(0.00001, this.audioContext.currentTime + 0.35);
+                osc.type = 'sawtooth';
+                break;
+            case 'fire':
+                osc.frequency.value = 50 + Math.random() * 30;
+                gain.gain.exponentialRampToValueAtTime(0.00001, this.audioContext.currentTime + 0.5);
+                osc.type = 'sine';
+                break;
+            case 'molotov':
+                osc.frequency.value = 150;
+                gain.gain.exponentialRampToValueAtTime(0.00001, this.audioContext.currentTime + 0.5);
+                osc.type = 'sawtooth';
+                break;
+            case 'boss':
+                osc.frequency.value = 60;
+                gain.gain.exponentialRampToValueAtTime(0.00001, this.audioContext.currentTime + 0.8);
+                osc.type = 'sawtooth';
+                break;
+            default: return;
+        }
+        osc.start();
+        osc.stop(this.audioContext.currentTime + 0.4);
+    }
+    
+    addCrosshairDot() {
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        this.crosshair.appendChild(dot);
+    }
+    
+    resizeCanvas() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+    }
+    
+    togglePause() {
+        if (!this.gameOver) {
+            this.paused = !this.paused;
+        }
     }
