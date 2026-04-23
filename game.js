@@ -436,3 +436,133 @@ class Game {
         this.ctx.font = '8px "Press Start 2P", monospace';
         this.ctx.fillText('RADAR', mapX + 5, mapY + 15);
     }
+    switchWeapon(weapon) {
+        if (weapon === 'mg' && this.currentWeapon !== 'mg') {
+            this.currentWeapon = 'mg';
+            this.ammo = this.mgAmmo;
+            this.updateUI();
+            const weaponIcon = document.getElementById('weaponIcon');
+            if (weaponIcon) weaponIcon.textContent = '🔫';
+        } else if (weapon === 'shotgun' && this.currentWeapon !== 'shotgun') {
+            this.currentWeapon = 'shotgun';
+            this.ammo = this.shotgunAmmo;
+            this.updateUI();
+            const weaponIcon = document.getElementById('weaponIcon');
+            if (weaponIcon) weaponIcon.textContent = '🔫';
+        }
+    }
+    
+    generateGroundMap() {
+        for (let x = 0; x < this.worldWidth; x += this.groundSize) {
+            this.groundMap[x] = [];
+            for (let y = 0; y < this.worldHeight; y += this.groundSize) {
+                const chaosNoise = Math.sin(x * 0.003) * Math.cos(y * 0.003) + Math.sin(x * 0.01) * 0.3;
+                if (chaosNoise > 0.6) this.groundMap[x][y] = { type: 'burned', variant: 0 };
+                else if (chaosNoise > 0.3) this.groundMap[x][y] = { type: 'cobble', variant: Math.floor(Math.random() * 2) };
+                else if (chaosNoise < -0.4) this.groundMap[x][y] = { type: 'dirt', variant: Math.floor(Math.random() * 2) };
+                else this.groundMap[x][y] = { type: 'grass', variant: Math.floor(Math.random() * 3) };
+            }
+        }
+    }
+    
+    generateChaoticWorld() {
+        for (let i = 0; i < this.treeCount; i++) {
+            let valid = false;
+            let attempts = 0;
+            while (!valid && attempts < 50) {
+                const isBurned = Math.random() < 0.2;
+                const tree = {
+                    x: Math.random() * this.worldWidth,
+                    y: Math.random() * this.worldHeight,
+                    size: 32,
+                    type: Math.random() > 0.5 ? 'pine' : 'oak',
+                    burned: isBurned
+                };
+                const dx = tree.x - this.worldWidth/2;
+                const dy = tree.y - this.worldHeight/2;
+                if (Math.hypot(dx, dy) > 200) {
+                    let tooClose = false;
+                    for (let existing of this.trees) {
+                        if (Math.hypot(tree.x - existing.x, tree.y - existing.y) < 60) {
+                            tooClose = true;
+                            break;
+                        }
+                    }
+                    if (!tooClose) {
+                        this.trees.push(tree);
+                        valid = true;
+                    }
+                }
+                attempts++;
+            }
+        }
+        
+        const ruinColors = ['#4a3a2a', '#3a2a1a', '#5a4a3a'];
+        for (let i = 0; i < 15; i++) {
+            let valid = false;
+            let attempts = 0;
+            while (!valid && attempts < 50) {
+                const structure = {
+                    x: Math.random() * this.worldWidth,
+                    y: Math.random() * this.worldHeight,
+                    width: 48,
+                    height: 48,
+                    color: ruinColors[Math.floor(Math.random() * ruinColors.length)],
+                    roofColor: '#5a3a1a',
+                    type: 'ruin',
+                    destroyed: Math.random() < 0.4
+                };
+                const dx = structure.x - this.worldWidth/2;
+                const dy = structure.y - this.worldHeight/2;
+                if (Math.hypot(dx, dy) > 300) {
+                    this.structures.push(structure);
+                    valid = true;
+                }
+                attempts++;
+            }
+        }
+        
+        for (let i = 0; i < 400; i++) {
+            const type = Math.random();
+            let deco;
+            if (type < 0.3) deco = { type: 'flower', x: Math.random() * this.worldWidth, y: Math.random() * this.worldHeight, color: '#ff4444' };
+            else if (type < 0.5) deco = { type: 'rock', x: Math.random() * this.worldWidth, y: Math.random() * this.worldHeight, size: 6 };
+            else if (type < 0.7) deco = { type: 'rubble', x: Math.random() * this.worldWidth, y: Math.random() * this.worldHeight };
+            else deco = { type: 'bush', x: Math.random() * this.worldWidth, y: Math.random() * this.worldHeight, burned: Math.random() < 0.3 };
+            
+            let collision = false;
+            for (let s of this.structures) {
+                if (Math.abs(deco.x - s.x) < 30 && Math.abs(deco.y - s.y) < 30) collision = true;
+            }
+            if (!collision) this.decorations.push(deco);
+        }
+    }
+    
+    generateFiresAndSmoke() {
+        for (let i = 0; i < 40; i++) {
+            this.fires.push({ x: Math.random() * this.worldWidth, y: Math.random() * this.worldHeight, size: 12 + Math.random() * 20, intensity: 0.5 + Math.random() * 0.8 });
+        }
+        for (let i = 0; i < 150; i++) {
+            this.smokeParticles.push({ x: Math.random() * this.worldWidth, y: Math.random() * this.worldHeight, size: 8 + Math.random() * 15, opacity: 0.2 + Math.random() * 0.4, vx: (Math.random() - 0.5) * 0.5, vy: -0.5 - Math.random() * 1, life: 100 + Math.random() * 100 });
+        }
+    }
+    
+    startWave() {
+        if (this.waveInProgress) return; // Prevent double start
+        this.waveInProgress = true;
+        this.waveSpawningComplete = false;
+        this.enemiesToSpawn = Math.floor(5 + this.wave * 1.5);
+        this.enemiesRemaining = this.enemiesToSpawn;
+        
+        this.waveMessage = `WAVE ${this.wave}`;
+        this.waveMessageTimer = 120;
+        
+        const isBossWave = this.wave % 3 === 0;
+        
+        if (isBossWave) {
+            this.waveMessage = `⚠️ BOSS WAVE! ⚠️\nWAVE ${this.wave}`;
+            this.spawnBoss();
+        } else {
+            this.spawnWaveEnemies();
+        }
+    }
