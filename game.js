@@ -805,3 +805,202 @@ class Game {
             clone.play().catch(() => {});
         }
     }
+
+    shoot() {
+        if (this.ammo.reloading || this.ammo.current <= 0 || this.shootCooldown > 0) {
+            if (this.ammo.current <= 0) {
+                this.lowAmmoWarningTimer = 60;
+                this.playEmptyClickSound();
+            }
+            return;
+        }
+        const fromX = this.player.x + this.player.size/2;
+        const fromY = this.player.y + this.player.size/2;
+        const dx = this.mouseWorld.x - fromX;
+        const dy = this.mouseWorld.y - fromY;
+        const len = Math.hypot(dx, dy);
+        if (len === 0) return;
+        const dirX = dx / len;
+        const dirY = dy / len;
+        const delay = this.currentWeapon === 'mg' ? this.mgShootDelay : this.shotgunShootDelay;
+        
+        if (this.currentWeapon === 'mg') {
+            this.bullets.push({ x: fromX, y: fromY, vx: dirX * this.bulletSpeed, vy: dirY * this.bulletSpeed, size: 4, life: 150, damage: 34, weapon: 'mg' });
+            
+            const knockbackX = -dirX * 4;
+            const knockbackY = -dirY * 4;
+            this.player.x += knockbackX;
+            this.player.y += knockbackY;
+            
+            this.screenShake.active = true;
+            this.screenShake.intensity = 3;
+            this.screenShake.timer = 3;
+            
+        } else {
+            for (let i = -2; i <= 2; i++) {
+                const spread = i * 0.08;
+                const angle = Math.atan2(dy, dx);
+                this.bullets.push({ x: fromX, y: fromY, vx: Math.cos(angle + spread) * this.bulletSpeed, vy: Math.sin(angle + spread) * this.bulletSpeed, size: 3, life: 150, damage: 20, weapon: 'shotgun' });
+            }
+            
+            const knockbackX = -dirX * 12;
+            const knockbackY = -dirY * 12;
+            this.player.x += knockbackX;
+            this.player.y += knockbackY;
+            
+            this.screenShake.active = true;
+            this.screenShake.intensity = 8;
+            this.screenShake.timer = 5;
+            this.recoilTimer = 5;
+        }
+        
+        this.player.x = Math.max(0, Math.min(this.player.x, this.worldWidth - this.player.size));
+        this.player.y = Math.max(0, Math.min(this.player.y, this.worldHeight - this.player.size));
+        
+        this.ammo.current--;
+        this.shootCooldown = delay;
+        this.muzzleFlash.active = true;
+        this.muzzleFlash.timer = 3;
+        this.addParticle(fromX, fromY, '#ffcc00', 4);
+        this.addSmoke(fromX, fromY);
+        this.playSound('gunshot', this.currentWeapon === 'shotgun' ? 0.25 : 0.2);
+        this.updateUI();
+    }
+    
+    updateCamera() {
+        const targetX = this.player.x + this.player.size/2 - this.canvas.width/2;
+        const targetY = this.player.y + this.player.size/2 - this.canvas.height/2;
+        this.camera.targetX = Math.max(0, Math.min(targetX, this.worldWidth - this.canvas.width));
+        this.camera.targetY = Math.max(0, Math.min(targetY, this.worldHeight - this.canvas.height));
+        let shakeX = 0, shakeY = 0;
+        if (this.screenShake.active) {
+            shakeX = (Math.random() - 0.5) * this.screenShake.intensity;
+            shakeY = (Math.random() - 0.5) * this.screenShake.intensity;
+            this.screenShake.timer--;
+            if (this.screenShake.timer <= 0) this.screenShake.active = false;
+        }
+        this.camera.x = this.camera.targetX + shakeX;
+        this.camera.y = this.camera.targetY + shakeY;
+    }
+    
+    playEmptyClickSound() {
+        if (!this.soundsEnabled) return;
+        const now = Date.now();
+        if (this.lastClickTime && now - this.lastClickTime < 500) return;
+        this.lastClickTime = now;
+        if (this.clickSound) {
+            const clickClone = new Audio();
+            clickClone.src = this.clickSound.src;
+            clickClone.volume = 0.3;
+            clickClone.play().catch(() => {});
+            return;
+        }
+        if (!this.audioContext) return;
+        this.resumeAudio();
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+        oscillator.frequency.value = 80;
+        oscillator.type = 'square';
+        gainNode.gain.value = 0.15;
+        gainNode.gain.exponentialRampToValueAtTime(0.00001, this.audioContext.currentTime + 0.1);
+        oscillator.start();
+        oscillator.stop(this.audioContext.currentTime + 0.1);
+    }
+    
+    addFloatingNumber(x, y, amount, isCritical = false) {
+        this.floatingNumbers.push({
+            x: x, y: y,
+            value: amount,
+            life: 30,
+            isCritical: isCritical
+        });
+    }
+    
+    updateFloatingNumbers() {
+        for (let i = 0; i < this.floatingNumbers.length; i++) {
+            const fn = this.floatingNumbers[i];
+            fn.life--;
+            fn.y -= 1;
+            if (fn.life <= 0) {
+                this.floatingNumbers.splice(i, 1);
+                i--;
+            }
+        }
+    }
+    
+    drawFloatingNumbers() {
+        for (let fn of this.floatingNumbers) {
+            const x = fn.x - this.camera.x;
+            const y = fn.y - this.camera.y;
+            const alpha = Math.min(1, fn.life / 30);
+            this.ctx.font = 'bold 14px monospace';
+            this.ctx.textAlign = 'center';
+            if (fn.isCritical) {
+                this.ctx.fillStyle = `rgba(255, 200, 0, ${alpha})`;
+                this.ctx.font = 'bold 18px monospace';
+            } else {
+                this.ctx.fillStyle = `rgba(255, 100, 100, ${alpha})`;
+            }
+            this.ctx.fillText(`-${fn.value}`, x, y);
+            this.ctx.textAlign = 'left';
+        }
+    }
+    
+    updatePlayer() {
+        if (this.keys.w || this.keys.s || this.keys.a || this.keys.d) {
+            this.player.walkBob = Math.sin(Date.now() * 0.015) * 2;
+        } else {
+            this.player.walkBob = 0;
+        }
+        if (this.player.invincibleTimer > 0) this.player.invincibleTimer--;
+        let newX = this.player.x;
+        let newY = this.player.y;
+        if (this.keys.w) newY -= this.player.speed;
+        if (this.keys.s) newY += this.player.speed;
+        if (this.keys.a) newX -= this.player.speed;
+        if (this.keys.d) newX += this.player.speed;
+        for (let tree of this.trees) {
+            if (Math.abs(newX - tree.x) < this.player.size && Math.abs(newY - tree.y) < this.player.size) return;
+        }
+        for (let struct of this.structures) {
+            if (newX < struct.x + struct.width && newX + this.player.size > struct.x && newY < struct.y + struct.height && newY + this.player.size > struct.y) return;
+        }
+        if (newX >= 0 && newX + this.player.size <= this.worldWidth) this.player.x = newX;
+        if (newY >= 0 && newY + this.player.size <= this.worldHeight) this.player.y = newY;
+        
+        for (let i = 0; i < this.ammoPickups.length; i++) {
+            const ammo = this.ammoPickups[i];
+            if (Math.hypot(this.player.x - ammo.x, this.player.y - ammo.y) < 25) {
+                this.mgAmmo.total += ammo.mgAmount;
+                this.shotgunAmmo.total += ammo.shotgunAmount;
+                this.ammoPickups.splice(i, 1);
+                this.addParticle(ammo.x, ammo.y, '#FFD700', 6);
+                this.playSound('pickup', 0.3);
+                i--;
+                this.updateUI();
+            }
+        }
+        for (let i = 0; i < this.molotovPickups.length; i++) {
+            const pickup = this.molotovPickups[i];
+            if (Math.hypot(this.player.x - pickup.x, this.player.y - pickup.y) < 25) {
+                this.molotovs += pickup.amount;
+                this.molotovPickups.splice(i, 1);
+                this.addParticle(pickup.x, pickup.y, '#ff6600', 6);
+                this.playSound('pickup', 0.3);
+                i--;
+                this.updateUI();
+            }
+        }
+        for (let fire of this.fires) {
+            if (Math.hypot(this.player.x - fire.x, this.player.y - fire.y) < fire.size && this.player.invincibleTimer === 0) {
+                this.player.health -= 2;
+                this.player.invincibleTimer = 20;
+                this.damageFlash.classList.add('active');
+                setTimeout(() => this.damageFlash.classList.remove('active'), 200);
+                this.playSound('hurt', 0.3);
+                this.updateUI();
+            }
+        }
+    }
