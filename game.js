@@ -693,3 +693,115 @@ class Game {
             this.waveMessageTimer--;
         }
     }
+
+    spawnAmmoPickups() {
+        for (let i = 0; i < 12; i++) {
+            let valid = false;
+            let attempts = 0;
+            while (!valid && attempts < 30) {
+                const ammo = { x: Math.random() * this.worldWidth, y: Math.random() * this.worldHeight, mgAmount: 30, shotgunAmount: 6, size: 12 };
+                if (Math.hypot(ammo.x - this.player.x, ammo.y - this.player.y) > 250) {
+                    this.ammoPickups.push(ammo);
+                    valid = true;
+                }
+                attempts++;
+            }
+        }
+    }
+    
+    spawnMolotovPickups() {
+        for (let i = 0; i < 6; i++) {
+            let valid = false;
+            let attempts = 0;
+            while (!valid && attempts < 30) {
+                const pickup = { x: Math.random() * this.worldWidth, y: Math.random() * this.worldHeight, amount: 2, size: 12 };
+                if (Math.hypot(pickup.x - this.player.x, pickup.y - this.player.y) > 250) {
+                    this.molotovPickups.push(pickup);
+                    valid = true;
+                }
+                attempts++;
+            }
+        }
+    }
+    
+    addParticle(x, y, color, size) {
+        this.particles.push({ x, y, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, life: 25, color, size });
+    }
+    
+    addSmoke(x, y) {
+        this.smokeParticles.push({ x, y, size: 10 + Math.random() * 15, opacity: 0.3 + Math.random() * 0.4, vx: (Math.random() - 0.5) * 0.8, vy: -0.8 - Math.random() * 1.2, life: 80 + Math.random() * 60 });
+    }
+    
+    throwMolotov() {
+        if (this.molotovs <= 0 || this.molotovCooldown > 0) return;
+        const fromX = this.player.x + this.player.size/2;
+        const fromY = this.player.y + this.player.size/2;
+        const dx = this.mouseWorld.x - fromX;
+        const dy = this.mouseWorld.y - fromY;
+        const distance = Math.hypot(dx, dy);
+        const maxDist = 400;
+        const actualDist = Math.min(distance, maxDist);
+        const ratio = actualDist / Math.max(distance, 1);
+        const dirX = dx * ratio;
+        const dirY = dy * ratio;
+        const arcHeight = Math.min(100, actualDist / 4);
+        const landingX = fromX + dirX;
+        const landingY = fromY + dirY;
+        this.molotovProjectiles.push({ startX: fromX, startY: fromY, targetX: landingX, targetY: landingY, progress: 0, arcHeight, speed: 0.05 });
+        this.molotovs--;
+        this.molotovCooldown = this.molotovCooldownMax;
+        this.playSound('molotov', 0.3);
+        this.updateUI();
+    }
+    
+    setupInput() {
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (key === 'p' && !this.gameOver) { this.togglePause(); return; }
+            if (this.showTutorial) {
+                if (key === ' ' || key === 'enter' || key === 'escape') {
+                    this.closeTutorial();
+                }
+                return;
+            }
+            if (this.paused || this.gameOver) return;
+            if (this.keys.hasOwnProperty(key)) this.keys[key] = true;
+            if (key === 'r' && !this.ammo.reloading) { this.reload(); this.playSound('reload', 0.2); }
+            if (key === 'f') this.throwMolotov();
+        });
+        window.addEventListener('keyup', (e) => { const key = e.key.toLowerCase(); if (this.keys.hasOwnProperty(key)) this.keys[key] = false; });
+        window.addEventListener('wheel', (e) => {
+            if (this.gameOver || this.paused || this.showTutorial) return;
+            if (e.deltaY < 0) this.switchWeapon('mg');
+            else if (e.deltaY > 0) this.switchWeapon('shotgun');
+        });
+        window.addEventListener('mousemove', (e) => {
+            this.mouseScreen.x = e.clientX;
+            this.mouseScreen.y = e.clientY;
+            this.crosshair.style.left = e.clientX + 'px';
+            this.crosshair.style.top = e.clientY + 'px';
+            this.mouseWorld.x = this.mouseScreen.x + this.camera.x;
+            this.mouseWorld.y = this.mouseScreen.y + this.camera.y;
+        });
+        window.addEventListener('mousedown', (e) => {
+            if (this.showTutorial) {
+                this.closeTutorial();
+                return;
+            }
+            if (e.button === 0 && !this.gameOver && !this.paused) this.shooting = true;
+        });
+        window.addEventListener('mouseup', (e) => { if (e.button === 0) this.shooting = false; });
+    }
+    
+    reload() {
+        if (this.ammo.total <= 0 || this.ammo.current === this.ammo.maxMag) return;
+        this.ammo.reloading = true;
+        this.ammo.reloadTimer = this.ammo.reloadTime;
+        this.reloadCircular.classList.add('active');
+        if (this.reloadSound) {
+            const clone = new Audio();
+            clone.src = this.reloadSound.src;
+            clone.volume = 0.4;
+            clone.play().catch(() => {});
+        }
+    }
