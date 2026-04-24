@@ -566,3 +566,130 @@ class Game {
             this.spawnWaveEnemies();
         }
     }
+
+    spawnWaveEnemies() {
+        const types = [
+            { color: '#4a3a2a', speed: 1.2, health: 50, size: 26, name: 'zombie', damage: 12 },
+            { color: '#5a4a3a', speed: 1.6, health: 35, size: 24, name: 'fast zombie', damage: 10 }
+        ];
+        
+        let spawnedCount = 0;
+        for (let i = 0; i < this.enemiesToSpawn; i++) {
+            setTimeout(() => {
+                if (this.gameOver) return;
+                
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 300 + Math.random() * 200;
+                let x = this.player.x + Math.cos(angle) * distance;
+                let y = this.player.y + Math.sin(angle) * distance;
+                x = Math.max(50, Math.min(this.worldWidth - 50, x));
+                y = Math.max(50, Math.min(this.worldHeight - 50, y));
+                
+                const type = types[Math.floor(Math.random() * types.length)];
+                const enemy = {
+                    x: x, y: y,
+                    size: type.size,
+                    speed: type.speed + (this.wave * 0.03),
+                    health: type.health + Math.floor(this.wave * 2),
+                    maxHealth: type.health + Math.floor(this.wave * 2),
+                    color: type.color,
+                    damage: type.damage,
+                    type: type.name,
+                    isBoss: false,
+                    hitFlash: 0
+                };
+                
+                this.spawnZombieFromGround(x, y, enemy);
+                spawnedCount++;
+                if (spawnedCount === this.enemiesToSpawn) {
+                    this.waveSpawningComplete = true;
+                }
+            }, i * 300);
+        }
+        if (this.enemiesToSpawn === 0) this.waveSpawningComplete = true;
+    }
+    
+    spawnBoss() {
+        this.bossSpawned = true;
+        this.waveSpawningComplete = false;
+        
+        setTimeout(() => {
+            if (this.gameOver) return;
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 400;
+            let x = this.player.x + Math.cos(angle) * distance;
+            let y = this.player.y + Math.sin(angle) * distance;
+            x = Math.max(50, Math.min(this.worldWidth - 50, x));
+            y = Math.max(50, Math.min(this.worldHeight - 50, y));
+            
+            const bossHealth = 200 + this.wave * 20;
+            const boss = {
+                x: x, y: y,
+                size: 48,
+                speed: 0.8,
+                health: bossHealth,
+                maxHealth: bossHealth,
+                color: '#8B0000',
+                damage: 25,
+                type: 'BOSS',
+                isBoss: true,
+                attackCooldown: 0,
+                slamTimer: 0,
+                hitFlash: 0
+            };
+            
+            this.spawnZombieFromGround(x, y, boss);
+            this.waveSpawningComplete = true;
+            
+            for (let i = 0; i < 50; i++) {
+                this.particles.push({
+                    x: x + (Math.random() - 0.5) * 60,
+                    y: y + (Math.random() - 0.5) * 60,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    life: 40,
+                    color: '#ff4400',
+                    size: 4 + Math.random() * 6
+                });
+            }
+            
+            this.playSound('boss', 0.5);
+        }, 1000);
+    }
+    
+    checkWaveCompletion() {
+        if (!this.waveInProgress) return;
+        if (this.waveSpawningComplete && this.enemies.length === 0 && this.spawningEnemies.length === 0) {
+            this.waveInProgress = false;
+            this.bossSpawned = false;
+            this.wave++;
+            
+            this.player.health = Math.min(this.player.maxHealth, this.player.health + 20);
+            this.molotovs = Math.min(this.molotovs + 1, 6);
+            
+            this.waveMessage = `WAVE ${this.wave - 1} COMPLETE!`;
+            this.waveMessageTimer = 90;
+            this.waveCooldown = 180;
+            this.updateUI();
+        }
+    }
+    
+    drawWaveMessage() {
+        if (this.waveMessageTimer > 0) {
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            this.ctx.fillRect(0, this.canvas.height / 2 - 60, this.canvas.width, 120);
+            
+            this.ctx.fillStyle = '#ffaa44';
+            this.ctx.font = 'bold 24px "Press Start 2P", monospace';
+            this.ctx.textAlign = 'center';
+            
+            const lines = this.waveMessage.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+                this.ctx.fillText(lines[i], this.canvas.width / 2, this.canvas.height / 2 - 20 + (i * 40));
+            }
+            
+            this.ctx.textAlign = 'left';
+            this.waveMessageTimer--;
+        }
+    }
