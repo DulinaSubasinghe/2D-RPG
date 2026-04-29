@@ -1444,3 +1444,173 @@ class Game {
             }
         }
     }
+
+    drawTrees() {
+        for (let tree of this.trees) {
+            const x = tree.x - this.camera.x;
+            const y = tree.y - this.camera.y;
+            if (x + 50 < 0 || x - 50 > this.canvas.width || y + 60 < 0 || y - 50 > this.canvas.height) continue;
+            this.ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            this.ctx.fillRect(x - 12, y + 10, 24, 8);
+            if (tree.burned) {
+                this.ctx.fillStyle = '#2a1a0a';
+                this.ctx.fillRect(x - 8, y - 10, 16, 35);
+                this.ctx.fillStyle = '#1a0a00';
+                this.ctx.fillRect(x - 15, y - 20, 6, 8);
+                this.ctx.fillRect(x + 9, y - 25, 6, 8);
+                this.ctx.fillRect(x - 3, y - 35, 6, 12);
+                this.ctx.fillStyle = '#3a2a1a';
+                this.ctx.fillRect(x - 12, y - 30, 24, 8);
+                this.ctx.fillRect(x - 8, y - 38, 16, 6);
+            } else if (tree.type === 'oak') {
+                this.ctx.fillStyle = '#6a4a2a';
+                this.ctx.fillRect(x - 9, y - 12, 18, 40);
+                this.ctx.fillStyle = '#5a3a1a';
+                for (let i = 0; i < 3; i++) this.ctx.fillRect(x - 5 + i*5, y - 5, 2, 25);
+                this.ctx.fillStyle = '#2d6a2c';
+                this.ctx.beginPath();
+                this.ctx.arc(x, y - 18, 22, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.fillStyle = '#3a7a3c';
+                this.ctx.beginPath();
+                this.ctx.arc(x - 12, y - 25, 16, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.beginPath();
+                this.ctx.arc(x + 12, y - 25, 16, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.fillStyle = '#4a8a4c';
+                this.ctx.beginPath();
+                this.ctx.arc(x, y - 35, 14, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.beginPath();
+                this.ctx.arc(x - 8, y - 40, 10, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.beginPath();
+                this.ctx.arc(x + 8, y - 40, 10, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.fillStyle = '#5aaa5c';
+                this.ctx.beginPath();
+                this.ctx.arc(x - 5, y - 45, 6, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.beginPath();
+                this.ctx.arc(x + 5, y - 45, 6, 0, Math.PI * 2);
+                this.ctx.fill();
+            } else {
+                this.ctx.fillStyle = '#6a4a2a';
+                this.ctx.fillRect(x - 6, y - 5, 12, 35);
+                this.ctx.fillStyle = '#1d5a1c';
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y - 45);
+                this.ctx.lineTo(x - 22, y - 20);
+                this.ctx.lineTo(x + 22, y - 20);
+                this.ctx.fill();
+                this.ctx.fillStyle = '#2d6a2c';
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y - 55);
+                this.ctx.lineTo(x - 18, y - 32);
+                this.ctx.lineTo(x + 18, y - 32);
+                this.ctx.fill();
+                this.ctx.fillStyle = '#3d7a3c';
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y - 65);
+                this.ctx.lineTo(x - 14, y - 45);
+                this.ctx.lineTo(x + 14, y - 45);
+                this.ctx.fill();
+                this.ctx.fillStyle = '#4a8a4c';
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y - 80);
+                this.ctx.lineTo(x - 8, y - 60);
+                this.ctx.lineTo(x + 8, y - 60);
+                this.ctx.fill();
+            }
+        }
+    }
+    
+    drawStructures() {
+        for (let struct of this.structures) {
+            const x = struct.x - this.camera.x;
+            const y = struct.y - this.camera.y;
+            this.ctx.fillStyle = struct.color;
+            this.ctx.fillRect(x, y, struct.width, struct.height);
+            if (struct.destroyed) {
+                this.ctx.fillStyle = '#3a2a1a';
+                this.ctx.fillRect(x + 10, y + 15, 8, 8);
+                this.ctx.fillRect(x + 30, y + 25, 10, 10);
+            } else {
+                this.ctx.fillStyle = '#5a3a1a';
+                for (let i = 0; i < 3; i++) this.ctx.fillRect(x + 8 + i*16, y + struct.height - 8, 4, 4);
+                this.ctx.fillStyle = '#8B4513';
+                for (let i = 0; i < struct.width/4; i++) this.ctx.fillRect(x + i*4, y - 6 - i*2, 4, 4);
+            }
+        }
+    }
+    
+    drawFires() {
+        for (let fire of this.fires) {
+            const x = fire.x - this.camera.x;
+            const y = fire.y - this.camera.y;
+            const flicker = Math.sin(Date.now() * 0.015) * 3;
+            if (x + 80 < 0 || x - 80 > this.canvas.width || y + 80 < 0 || y - 80 > this.canvas.height) continue;
+            this.ctx.fillStyle = '#1a0a00';
+            this.ctx.beginPath();
+            this.ctx.ellipse(x, y + 5, 35, 15, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.fillStyle = '#2a1a0a';
+            this.ctx.beginPath();
+            this.ctx.ellipse(x, y + 3, 45, 18, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.fillStyle = `rgba(255, 80, 0, 0.9)`;
+            this.ctx.beginPath();
+            this.ctx.moveTo(x - 12, y + 5);
+            this.ctx.lineTo(x, y - 25 - flicker);
+            this.ctx.lineTo(x + 12, y + 5);
+            this.ctx.fill();
+            this.ctx.fillStyle = `rgba(255, 90, 0, 0.85)`;
+            this.ctx.beginPath();
+            this.ctx.moveTo(x - 20, y + 3);
+            this.ctx.lineTo(x - 10, y - 18 - flicker/1.5);
+            this.ctx.lineTo(x - 2, y + 3);
+            this.ctx.fill();
+            this.ctx.beginPath();
+            this.ctx.moveTo(x + 2, y + 3);
+            this.ctx.lineTo(x + 12, y - 18 - flicker/1.5);
+            this.ctx.lineTo(x + 20, y + 3);
+            this.ctx.fill();
+            this.ctx.fillStyle = `rgba(255, 100, 0, 0.8)`;
+            this.ctx.beginPath();
+            this.ctx.moveTo(x - 28, y + 2);
+            this.ctx.lineTo(x - 18, y - 10 - flicker/2);
+            this.ctx.lineTo(x - 10, y + 2);
+            this.ctx.fill();
+            this.ctx.beginPath();
+            this.ctx.moveTo(x + 10, y + 2);
+            this.ctx.lineTo(x + 20, y - 10 - flicker/2);
+            this.ctx.lineTo(x + 28, y + 2);
+            this.ctx.fill();
+            this.ctx.fillStyle = `rgba(255, 200, 50, 0.95)`;
+            this.ctx.beginPath();
+            this.ctx.moveTo(x - 5, y);
+            this.ctx.lineTo(x, y - 12);
+            this.ctx.lineTo(x + 5, y);
+            this.ctx.fill();
+            for (let i = 0; i < 24; i++) {
+                const angle = (Date.now() * 0.005 + i) % (Math.PI * 2);
+                const distance = 15 + Math.sin(Date.now() * 0.003 + i) * 12;
+                const emberX = x + Math.cos(angle) * distance;
+                const emberY = y + 6 + Math.sin(angle * 1.5) * 4;
+                this.ctx.fillStyle = `rgba(255, ${120 + Math.random() * 80}, 0, 0.7)`;
+                this.ctx.fillRect(emberX - 1.5, emberY - 1.5, 3, 3);
+            }
+            for (let i = 0; i < 15; i++) {
+                const offsetX = (Math.sin(Date.now() * 0.007 + i) * 20) + (Math.random() - 0.5) * 15;
+                const offsetY = (Math.cos(Date.now() * 0.005 + i) * 8) + 5 + Math.random() * 8;
+                this.ctx.fillStyle = `rgba(255, ${100 + Math.random() * 100}, 0, 0.6)`;
+                this.ctx.fillRect(x + offsetX - 1, y + offsetY - 1, 2, 2);
+            }
+            if (Math.random() < 0.25) {
+                for (let s = 0; s < 3; s++) {
+                    this.addParticle(x + (Math.random() - 0.5) * 45, y - 5 - Math.random() * 25, '#ff8800', 2 + Math.random() * 2);
+                }
+            }
+        }
+    }
