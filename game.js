@@ -1301,3 +1301,146 @@ class Game {
             }
         }
     }
+
+    updateUI() {
+        const healthPercent = this.player.health / this.player.maxHealth;
+        if (this.healthFill) this.healthFill.style.width = (healthPercent * 100) + '%';
+        if (this.healthValue) this.healthValue.textContent = Math.floor(this.player.health);
+        
+        const ammoPercent = this.ammo.current / this.ammo.maxMag;
+        if (this.ammoFill) this.ammoFill.style.width = (ammoPercent * 100) + '%';
+        if (this.ammoCurrent) this.ammoCurrent.textContent = this.ammo.current;
+        if (this.ammoTotal) this.ammoTotal.textContent = this.ammo.total;
+        
+        const weaponNameElement = document.getElementById('weaponName');
+        if (weaponNameElement) {
+            weaponNameElement.textContent = this.currentWeapon === 'mg' ? 'MACHINE GUN' : 'SHOTGUN';
+        }
+        
+        if (this.scoreValue) this.scoreValue.textContent = this.score;
+        if (this.killsValue) this.killsValue.textContent = this.kills;
+        
+        const molotovCountElement = document.getElementById('molotovCount');
+        if (molotovCountElement) molotovCountElement.textContent = this.molotovs;
+        
+        if (this.currentWeapon === 'shotgun') {
+            if (this.ammo.current <= 2 && this.ammo.current > 0) this.lowAmmoWarningTimer = 60;
+        } else {
+            if (this.ammo.current <= 5 && this.ammo.current > 0) this.lowAmmoWarningTimer = 60;
+        }
+        if (this.player.health <= 30) this.lowHealthWarningTimer = 40;
+    }
+    
+    updateWarnings() {
+        if (this.lowAmmoWarningTimer > 0) {
+            if (this.lowAmmoWarning) this.lowAmmoWarning.classList.add('active');
+            this.lowAmmoWarningTimer--;
+        } else {
+            if (this.lowAmmoWarning) this.lowAmmoWarning.classList.remove('active');
+        }
+        if (this.lowHealthWarningTimer > 0) {
+            if (this.lowHealthWarning) this.lowHealthWarning.classList.add('active');
+            this.lowHealthWarningTimer--;
+        } else {
+            if (this.lowHealthWarning) this.lowHealthWarning.classList.remove('active');
+        }
+    }
+    
+    update() {
+        if (this.gameOver) return;
+        if (this.paused) return;
+        if (this.showTutorial) return;
+        
+        if (!this.waveInProgress && this.waveCooldown > 0) {
+            this.waveCooldown--;
+            if (this.waveCooldown <= 0) {
+                this.startWave();
+            }
+        }
+        
+        this.updatePlayer();
+        this.updateShooting();
+        this.updateBullets();
+        this.updateEnemies();
+        this.updateFireZones();
+        this.updateMolotovProjectiles();
+        this.updateFiresAndSmoke();
+        this.updateParticles();
+        this.updateBloodSplatters();
+        this.updateSpawnAnimations();
+        this.updateFloatingNumbers();
+        this.updateCamera();
+        this.updateWarnings();
+        
+        this.checkWaveCompletion();
+        
+        if (this.player.health < this.player.maxHealth) {
+            this.player.health = Math.min(this.player.maxHealth, this.player.health + 0.03);
+            this.updateUI();
+        }
+        this.fogIntensity = 0.3 + Math.sin(Date.now() * 0.001) * 0.1;
+        if (this.fogOverlay) this.fogOverlay.style.opacity = this.fogIntensity;
+    }
+    
+    drawGround() {
+        for (let x = 0; x < this.worldWidth; x += this.groundSize) {
+            for (let y = 0; y < this.worldHeight; y += this.groundSize) {
+                const ground = this.groundMap[x]?.[y] || { type: 'grass', variant: 0 };
+                let color;
+                if (ground.type === 'burned') color = '#2a1a0a';
+                else if (ground.type === 'cobble') color = '#6a5a4a';
+                else if (ground.type === 'dirt') color = '#6b4a2a';
+                else color = ['#3a6a32', '#2d5a2c', '#3a5a32'][ground.variant];
+                this.ctx.fillStyle = color;
+                this.ctx.fillRect(x - this.camera.x, y - this.camera.y, this.groundSize + 0.5, this.groundSize + 0.5);
+                if (ground.type === 'burned') {
+                    this.ctx.fillStyle = '#1a0a00';
+                    this.ctx.fillRect(x + 8 - this.camera.x, y + 12 - this.camera.y, 4, 4);
+                    this.ctx.fillRect(x + 20 - this.camera.x, y + 8 - this.camera.y, 3, 3);
+                }
+            }
+        }
+        // Draw craters
+        for (let c of this.craters) {
+            this.ctx.fillStyle = '#1a0a00';
+            this.ctx.beginPath();
+            this.ctx.arc(c.x - this.camera.x, c.y - this.camera.y, c.radius, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.fillStyle = '#2a1a0a';
+            this.ctx.beginPath();
+            this.ctx.arc(c.x - this.camera.x, c.y - this.camera.y, c.radius - 5, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+    }
+    
+    drawPonds() {
+        for (let p of this.ponds) {
+            const x = p.x - this.camera.x;
+            const y = p.y - this.camera.y;
+            this.ctx.fillStyle = '#4a90e2';
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, p.radius, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.fillStyle = '#6ab0ff';
+            this.ctx.fillRect(x - 8, y - 5, 6, 3);
+            this.ctx.fillRect(x + 5, y + 3, 5, 2);
+        }
+    }
+    
+    drawDecorations() {
+        for (let deco of this.decorations) {
+            if (deco.type === 'flower') {
+                this.ctx.fillStyle = deco.color;
+                this.ctx.fillRect(deco.x - 2 - this.camera.x, deco.y - 2 - this.camera.y, 4, 4);
+            } else if (deco.type === 'rock') {
+                this.ctx.fillStyle = '#5a5a4a';
+                this.ctx.fillRect(deco.x - 3 - this.camera.x, deco.y - 2 - this.camera.y, 6, 4);
+            } else if (deco.type === 'rubble') {
+                this.ctx.fillStyle = '#6a5a4a';
+                this.ctx.fillRect(deco.x - 4 - this.camera.x, deco.y - 3 - this.camera.y, 8, 6);
+            } else if (deco.type === 'bush') {
+                this.ctx.fillStyle = deco.burned ? '#2a1a0a' : '#2d6a2c';
+                this.ctx.fillRect(deco.x - 5 - this.camera.x, deco.y - 5 - this.camera.y, 10, 10);
+            }
+        }
+    }
