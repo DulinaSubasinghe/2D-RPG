@@ -1131,3 +1131,173 @@ class Game {
             }
         }
     }
+
+    updateBullets() {
+        for (let i = 0; i < this.bullets.length; i++) {
+            const bullet = this.bullets[i];
+            bullet.x += bullet.vx;
+            bullet.y += bullet.vy;
+            bullet.life--;
+            if (bullet.life <= 0 || bullet.x < 0 || bullet.x > this.worldWidth || bullet.y < 0 || bullet.y > this.worldHeight) {
+                this.bullets.splice(i, 1);
+                i--;
+                continue;
+            }
+            let hit = false;
+            for (let j = 0; j < this.enemies.length; j++) {
+                const enemy = this.enemies[j];
+                if (Math.abs(bullet.x - enemy.x) < enemy.size && Math.abs(bullet.y - enemy.y) < enemy.size) {
+                    const damage = bullet.damage;
+                    enemy.health -= damage;
+                    enemy.hitFlash = 5;
+                    this.addFloatingNumber(enemy.x, enemy.y, damage, damage >= 34);
+                    this.bullets.splice(i, 1);
+                    this.addParticle(bullet.x, bullet.y, '#ff6666', 4);
+                    this.hitMarker.classList.add('active');
+                    setTimeout(() => this.hitMarker.classList.remove('active'), 300);
+                    this.playSound('hit', 0.15);
+                    
+                    if (enemy.health <= 0) {
+                        this.addBloodSplatter(enemy.x, enemy.y);
+                        this.enemies.splice(j, 1);
+                        this.score += 10;
+                        this.kills++;
+                        this.addParticle(enemy.x, enemy.y, '#ff0000', 8);
+                        this.addSmoke(enemy.x, enemy.y);
+                        this.updateUI();
+                        this.playSound('death', 0.25);
+                    }
+                    hit = true;
+                    break;
+                }
+            }
+            if (hit) i--;
+        }
+    }
+    
+    addBloodSplatter(x, y) {
+        for (let i = 0; i < 5 + Math.random() * 8; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 5 + Math.random() * 25;
+            this.bloodSplatters.push({ x: x + Math.cos(angle) * dist, y: y + Math.sin(angle) * dist, size: 3 + Math.random() * 8, life: 300, maxLife: 300, color: `hsl(0, ${70 + Math.random() * 20}%, ${30 + Math.random() * 20}%)` });
+        }
+        this.bloodSplatters.push({ x, y, size: 12 + Math.random() * 10, life: 300, maxLife: 300, color: '#8B0000' });
+    }
+    
+    updateBloodSplatters() {
+        for (let i = 0; i < this.bloodSplatters.length; i++) {
+            this.bloodSplatters[i].life--;
+            if (this.bloodSplatters[i].life <= 0) { this.bloodSplatters.splice(i, 1); i--; }
+        }
+    }
+    
+    spawnSingleEnemy() {
+        // This function is not used – wave system handles all spawning.
+        // Kept for reference but never called.
+    }
+    
+    updateEnemies() {
+        for (let enemy of this.enemies) {
+            if (enemy.hitFlash > 0) enemy.hitFlash--;
+            
+            const dx = this.player.x - enemy.x;
+            const dy = this.player.y - enemy.y;
+            const dist = Math.hypot(dx, dy);
+            
+            if (dist > 0) {
+                const moveX = (dx / dist) * enemy.speed;
+                const moveY = (dy / dist) * enemy.speed;
+                enemy.x += moveX;
+                enemy.y += moveY;
+            }
+            
+            if (enemy.isBoss) {
+                if (enemy.attackCooldown > 0) enemy.attackCooldown--;
+                if (enemy.attackCooldown === 0 && dist < 150) {
+                    enemy.attackCooldown = 120;
+                    this.screenShake.active = true;
+                    this.screenShake.intensity = 12;
+                    this.screenShake.timer = 10;
+                    if (dist < 80) {
+                        this.player.health -= 20;
+                        this.player.invincibleTimer = 20;
+                        this.damageFlash.classList.add('active');
+                        setTimeout(() => this.damageFlash.classList.remove('active'), 200);
+                        this.playSound('hurt', 0.5);
+                    }
+                    for (let i = 0; i < 30; i++) {
+                        this.particles.push({
+                            x: enemy.x + (Math.random() - 0.5) * 50,
+                            y: enemy.y + (Math.random() - 0.5) * 30,
+                            vx: (Math.random() - 0.5) * 4,
+                            vy: -Math.random() * 5,
+                            life: 25,
+                            color: '#ff8844',
+                            size: 3
+                        });
+                    }
+                }
+            }
+            
+            if (Math.abs(enemy.x - this.player.x) < this.player.size && Math.abs(enemy.y - this.player.y) < this.player.size && this.player.invincibleTimer === 0) {
+                this.player.health -= enemy.damage;
+                this.player.invincibleTimer = 35;
+                this.damageFlash.classList.add('active');
+                setTimeout(() => this.damageFlash.classList.remove('active'), 200);
+                this.screenShake.active = true;
+                this.screenShake.intensity = 8;
+                this.screenShake.timer = 5;
+                const angle = Math.atan2(enemy.y - this.player.y, enemy.x - this.player.x);
+                this.player.x -= Math.cos(angle) * 35;
+                this.player.y -= Math.sin(angle) * 35;
+                this.playSound('hurt', 0.35);
+                if (this.player.health <= 0) this.gameOver = true;
+                this.updateUI();
+            }
+        }
+    }
+    
+    updateFiresAndSmoke() {
+        for (let fire of this.fires) {
+            fire.intensity = 0.5 + Math.random() * 0.8;
+            if (Math.random() < 0.6) {
+                this.addSmoke(fire.x + (Math.random() - 0.5) * 35, fire.y - 15 + (Math.random() - 0.5) * 20);
+            }
+            if (Math.random() < 0.3) {
+                for (let i = 0; i < 5; i++) {
+                    this.particles.push({
+                        x: fire.x + (Math.random() - 0.5) * 55,
+                        y: fire.y + (Math.random() - 0.5) * 15 + 5,
+                        vx: (Math.random() - 0.5) * 0.8,
+                        vy: (Math.random() - 0.5) * 0.5 - 0.2,
+                        life: 25 + Math.random() * 20,
+                        color: `rgba(255, ${80 + Math.random() * 120}, 0, 0.7)`,
+                        size: 1.5 + Math.random() * 2.5
+                    });
+                }
+            }
+            if (Math.random() < 0.01 && this.audioContext) this.playSound('fire', 0.08);
+        }
+        if (Math.random() < 0.008 && this.fires.length < 60) {
+            this.fires.push({ x: Math.random() * this.worldWidth, y: Math.random() * this.worldHeight, size: 10 + Math.random() * 25, intensity: 0.6 });
+        }
+        for (let i = 0; i < this.smokeParticles.length; i++) {
+            const smoke = this.smokeParticles[i];
+            smoke.x += smoke.vx;
+            smoke.y += smoke.vy;
+            smoke.life--;
+            smoke.size += 0.5;
+            if (smoke.life <= 0) { this.smokeParticles.splice(i, 1); i--; }
+        }
+    }
+    
+    updateParticles() {
+        for (let i = 0; i < this.particles.length; i++) {
+            this.particles[i].life--;
+            if (this.particles[i].life <= 0) { this.particles.splice(i, 1); i--; }
+            else {
+                this.particles[i].x += this.particles[i].vx;
+                this.particles[i].y += this.particles[i].vy;
+            }
+        }
+    }
