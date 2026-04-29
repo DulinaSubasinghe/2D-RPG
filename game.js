@@ -1004,3 +1004,130 @@ class Game {
             }
         }
     }
+
+    updateShooting() {
+        if (this.shooting && !this.gameOver) this.shoot();
+        if (this.shootCooldown > 0) this.shootCooldown--;
+        
+        if (this.ammo.reloading) {
+            this.ammo.reloadTimer--;
+            const progress = 1 - (this.ammo.reloadTimer / this.ammo.reloadTime);
+            const circumference = 283;
+            const dashoffset = circumference * (1 - progress);
+            if (this.reloadProgressCircle) this.reloadProgressCircle.style.strokeDashoffset = dashoffset;
+            
+            if (this.ammo.reloadTimer <= 0) {
+                const toReload = Math.min(this.ammo.maxMag - this.ammo.current, this.ammo.total);
+                this.ammo.current += toReload;
+                this.ammo.total -= toReload;
+                this.ammo.reloading = false;
+                this.reloadCircular.classList.remove('active');
+                this.updateUI();
+            }
+        }
+        
+        if (this.muzzleFlash.active) {
+            this.muzzleFlash.timer--;
+            if (this.muzzleFlash.timer <= 0) this.muzzleFlash.active = false;
+        }
+        if (this.molotovCooldown > 0) this.molotovCooldown--;
+    }
+    
+    updateFireZones() {
+        for (let i = 0; i < this.fireZones.length; i++) {
+            const zone = this.fireZones[i];
+            zone.life--;
+            for (let j = 0; j < this.enemies.length; j++) {
+                const enemy = this.enemies[j];
+                if (Math.hypot(enemy.x - zone.x, enemy.y - zone.y) < zone.radius) {
+                    enemy.health -= 1;
+                    if (enemy.health <= 0) {
+                        this.addBloodSplatter(enemy.x, enemy.y);
+                        this.enemies.splice(j, 1);
+                        this.score += 10;
+                        this.kills++;
+                        this.addParticle(enemy.x, enemy.y, '#ff0000', 8);
+                        this.addSmoke(enemy.x, enemy.y);
+                        this.updateUI();
+                        this.playSound('death', 0.25);
+                        j--;
+                    }
+                }
+            }
+            if (Math.hypot(this.player.x - zone.x, this.player.y - zone.y) < zone.radius && this.player.invincibleTimer === 0) {
+                this.player.health -= 1;
+                this.player.invincibleTimer = 10;
+                this.damageFlash.classList.add('active');
+                setTimeout(() => this.damageFlash.classList.remove('active'), 100);
+            }
+            if (zone.life <= 0) {
+                this.fireZones.splice(i, 1);
+                i--;
+            }
+        }
+    }
+    
+    updateMolotovProjectiles() {
+        for (let i = 0; i < this.molotovProjectiles.length; i++) {
+            const molly = this.molotovProjectiles[i];
+            molly.progress += molly.speed;
+            if (molly.progress >= 1) {
+                this.fireZones.push({ x: molly.targetX, y: molly.targetY, radius: 60, life: 300, maxLife: 300 });
+                for (let p = 0; p < 40; p++) this.particles.push({ x: molly.targetX + (Math.random() - 0.5) * 50, y: molly.targetY + (Math.random() - 0.5) * 40, vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4 - 2, life: 30, color: '#ff6600', size: 3 + Math.random() * 6 });
+                for (let s = 0; s < 15; s++) this.addSmoke(molly.targetX + (Math.random() - 0.5) * 30, molly.targetY + (Math.random() - 0.5) * 20);
+                this.molotovProjectiles.splice(i, 1);
+                i--;
+            }
+        }
+    }
+    
+    spawnZombieFromGround(x, y, enemyType) {
+        for (let i = 0; i < 20; i++) this.particles.push({ x: x + (Math.random() - 0.5) * 30, y: y + (Math.random() - 0.5) * 20, vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.5) * 4 - 2, life: 30, color: '#8B6914', size: 3 + Math.random() * 4 });
+        for (let i = 0; i < 15; i++) this.particles.push({ x: x + (Math.random() - 0.5) * 25, y: y - 10 + Math.random() * 20, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 3 - 1, life: 25, color: '#6B4226', size: 4 + Math.random() * 6 });
+        this.spawningEnemies.push({ enemy: enemyType, x: x, y: y, spawnTimer: 90 + Math.random() * 40, emerged: false });
+        this.playSound('zombie', 0.2);
+    }
+    
+    updateSpawnAnimations() {
+        for (let i = 0; i < this.spawningEnemies.length; i++) {
+            const spawn = this.spawningEnemies[i];
+            spawn.spawnTimer--;
+            if (spawn.spawnTimer > 0 && spawn.spawnTimer % 8 === 0) this.particles.push({ x: spawn.x + (Math.random() - 0.5) * 20, y: spawn.y + 10 - Math.random() * 15, vx: (Math.random() - 0.5) * 1.5, vy: -Math.random() * 2, life: 20, color: '#8B6914', size: 3 });
+            if (spawn.spawnTimer === 60 && !spawn.emerged) for (let p = 0; p < 8; p++) this.particles.push({ x: spawn.x + (Math.random() - 0.5) * 25, y: spawn.y + 5, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 3 - 1, life: 15, color: '#8B5A2B', size: 2 });
+            if (spawn.spawnTimer === 40 && !spawn.emerged) for (let p = 0; p < 12; p++) this.particles.push({ x: spawn.x + (Math.random() - 0.5) * 30, y: spawn.y + 8, vx: (Math.random() - 0.5) * 2.5, vy: -Math.random() * 4 - 1, life: 18, color: '#6B4226', size: 3 });
+            if (spawn.spawnTimer <= 0 && !spawn.emerged) {
+                spawn.emerged = true;
+                this.enemies.push(spawn.enemy);
+                for (let p = 0; p < 40; p++) this.particles.push({ x: spawn.x + (Math.random() - 0.5) * 45, y: spawn.y + (Math.random() - 0.5) * 30, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 7 - 4, life: 30, color: '#6B4226', size: 3 + Math.random() * 6 });
+                this.spawningEnemies.splice(i, 1);
+                i--;
+            }
+        }
+    }
+    
+    drawSpawningEnemies() {
+        for (let spawn of this.spawningEnemies) {
+            const x = spawn.x - this.camera.x;
+            const y = spawn.y - this.camera.y;
+            const progress = 1 - (spawn.spawnTimer / 90);
+            const enemyHeight = spawn.enemy.size * progress;
+            const enemyY = y + spawn.enemy.size - enemyHeight;
+            this.ctx.fillStyle = spawn.enemy.color;
+            this.ctx.fillRect(x, enemyY, spawn.enemy.size, enemyHeight);
+            const moundSize = 8 + (progress * 10);
+            this.ctx.fillStyle = '#8B6914';
+            this.ctx.beginPath();
+            this.ctx.ellipse(x + spawn.enemy.size/2, y + spawn.enemy.size - 3, moundSize, 6, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+            if (progress > 0.3) {
+                this.ctx.fillStyle = '#2a1a0a';
+                this.ctx.fillRect(x - 5, enemyY + 5, 5, 8);
+                this.ctx.fillRect(x + spawn.enemy.size, enemyY + 5, 5, 8);
+            }
+            if (progress > 0.6) {
+                this.ctx.fillStyle = '#ff0000';
+                this.ctx.fillRect(x + 5, enemyY + 2, 3, 3);
+                this.ctx.fillRect(x + spawn.enemy.size - 8, enemyY + 2, 3, 3);
+            }
+        }
+    }
