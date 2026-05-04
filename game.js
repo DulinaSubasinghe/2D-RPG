@@ -1715,3 +1715,178 @@ class Game {
             }
         }
     }
+
+    drawPlayer() {
+        const x = this.player.x - this.camera.x;
+        const y = this.player.y - this.camera.y + this.player.walkBob;
+        this.ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        this.ctx.fillRect(x + 6, y + 28, 18, 6);
+        if (this.player.invincibleTimer > 0 && Math.floor(Date.now() / 50) % 2 === 0) this.ctx.fillStyle = '#ffffff';
+        else this.ctx.fillStyle = '#5a7a4a';
+        this.ctx.fillRect(x, y, this.player.size, this.player.size);
+        this.ctx.fillStyle = '#4a6a3a';
+        this.ctx.fillRect(x + 4, y + 8, 20, 16);
+        this.ctx.fillStyle = '#3a5a2a';
+        this.ctx.fillRect(x + 8, y + 12, 4, 8);
+        this.ctx.fillRect(x + 16, y + 12, 4, 8);
+        this.ctx.fillStyle = '#8B6914';
+        this.ctx.fillRect(x + 2, y + this.player.size - 8, 24, 4);
+        this.ctx.fillStyle = '#7a6a5a';
+        this.ctx.fillRect(x + 6, y + 2, 16, 8);
+        this.ctx.fillStyle = '#6a5a4a';
+        this.ctx.fillRect(x + 8, y + 0, 12, 4);
+        const angle = Math.atan2(this.mouseWorld.y - this.player.y, this.mouseWorld.x - this.player.x);
+        const eyeX = Math.cos(angle) * 3;
+        const eyeY = Math.sin(angle) * 3;
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.fillRect(x + 8 + eyeX, y + 4 + eyeY, 3, 3);
+        this.ctx.fillRect(x + 18 + eyeX, y + 4 + eyeY, 3, 3);
+        this.ctx.fillStyle = '#000000';
+        this.ctx.fillRect(x + 9 + eyeX, y + 5 + eyeY, 1, 1);
+        this.ctx.fillRect(x + 19 + eyeX, y + 5 + eyeY, 1, 1);
+        const gunLength = 18;
+        const gunX = x + this.player.size/2;
+        const gunY = y + this.player.size/2;
+        const gunTipX = gunX + Math.cos(angle) * gunLength;         
+        const gunTipY = gunY + Math.sin(angle) * gunLength;
+        this.ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        this.ctx.fillRect(gunTipX - 2, gunTipY - 1, 8, 4);
+        this.ctx.fillStyle = this.currentWeapon === 'mg' ? '#3a3a3a' : '#8B4513';
+        this.ctx.fillRect(gunX - 3, gunY - 2, 8, 4);
+        this.ctx.fillStyle = '#2a2a2a';
+        this.ctx.beginPath();
+        this.ctx.moveTo(gunTipX - 2, gunTipY - 1);
+        this.ctx.lineTo(gunTipX + 6, gunTipY - 1);
+        this.ctx.lineTo(gunTipX + 6, gunTipY + 1);
+        this.ctx.lineTo(gunTipX - 2, gunTipY + 1);
+        this.ctx.fill();
+        this.ctx.fillStyle = '#5a3a1a';
+        this.ctx.fillRect(gunX - 6, gunY - 2, 4, 4);
+        this.ctx.fillStyle = '#4a2a0a';
+        this.ctx.fillRect(gunX - 2, gunY + 1, 3, 5);
+        if (this.muzzleFlash.active) {
+            this.ctx.fillStyle = '#ffff00';
+            this.ctx.fillRect(gunTipX + 2, gunTipY - 2, 6, 4);
+            this.ctx.fillStyle = '#ff8800';
+            this.ctx.fillRect(gunTipX + 4, gunTipY - 1, 4, 2);
+        }
+    }
+    
+    drawBullets() {
+        for (let bullet of this.bullets) {
+            this.ctx.fillStyle = bullet.weapon === 'shotgun' ? '#ffaa44' : '#ffcc00';
+            this.ctx.fillRect(bullet.x - 2 - this.camera.x, bullet.y - 2 - this.camera.y, 4, 4);
+            this.ctx.fillStyle = '#ff8800';
+            this.ctx.fillRect(bullet.x - 1 - this.camera.x, bullet.y - 1 - this.camera.y, 2, 2);
+        }
+    }
+    
+    drawAmmoPickups() {
+        for (let ammo of this.ammoPickups) {
+            const x = ammo.x - this.camera.x;
+            const y = ammo.y - this.camera.y;
+            const floatY = Math.sin(Date.now() * 0.008) * 3;
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.fillRect(x - 6, y - 6 + floatY, 12, 12);
+            this.ctx.fillStyle = '#FFA500';
+            this.ctx.fillRect(x - 3, y - 3 + floatY, 6, 6);
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.font = 'bold 14px monospace';
+            this.ctx.fillText('A', x - 4, y + 5 + floatY);
+        }
+    }
+    
+    drawMolotovProjectiles() {
+        for (let molly of this.molotovProjectiles) {
+            const t = molly.progress;
+            const x = molly.startX + (molly.targetX - molly.startX) * t;
+            const y = molly.startY + (molly.targetY - molly.startY) * t - molly.arcHeight * 4 * t * (1 - t);
+            const sx = x - this.camera.x;
+            const sy = y - this.camera.y;
+            this.ctx.fillStyle = '#8B4513';
+            this.ctx.fillRect(sx - 3, sy - 5, 6, 10);
+            this.ctx.fillStyle = '#654321';
+            this.ctx.fillRect(sx - 2, sy - 7, 4, 4);
+            this.ctx.fillStyle = '#ff6600';
+            this.ctx.fillRect(sx - 4, sy - 2, 8, 4);
+            this.ctx.fillStyle = 'rgba(255, 100, 0, 0.5)';
+            this.ctx.beginPath();
+            this.ctx.arc(sx, sy, 8, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+    }
+    
+    drawParticles() {
+        for (let p of this.particles) {
+            this.ctx.fillStyle = p.color;
+            this.ctx.fillRect(p.x - 2 - this.camera.x, p.y - 2 - this.camera.y, p.size, p.size);
+        }
+    }
+    
+    draw() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.imageSmoothingEnabled = false;
+        
+        this.drawGround();
+        this.drawPonds();              // added
+        this.drawDecorations();
+        this.drawBloodSplatters();
+        this.drawTrees();
+        this.drawStructures();
+        this.drawFires();
+        this.drawFireZones();
+        this.drawSmoke();
+        this.drawAmmoPickups();
+        this.drawMolotovPickups();
+        this.drawSpawningEnemies();
+        this.drawEnemies();
+        this.drawPlayer();
+        this.drawBullets();
+        this.drawMolotovProjectiles();
+        this.drawParticles();
+        this.drawFloatingNumbers();
+        
+        this.drawMinimap();
+        this.drawWaveMessage();
+        
+        if (this.paused) this.drawPauseMenu();
+        if (this.showTutorial) this.drawTutorial();
+        
+        this.ctx.fillStyle = '#ffaa44';
+        this.ctx.font = '12px "Press Start 2P", monospace';
+        this.ctx.textAlign = 'right';
+        this.ctx.fillText(`WAVE ${this.wave}`, this.canvas.width - 20, 15);
+        this.ctx.textAlign = 'left';
+        
+        if (this.waveInProgress) {
+            this.ctx.fillStyle = '#ff6666';
+            this.ctx.font = '10px monospace';
+            this.ctx.fillText(`ENEMIES: ${this.enemies.length + this.spawningEnemies.length}`, this.canvas.width - 20, 40);
+        }
+        
+        if (this.gameOver) {
+            this.ctx.fillStyle = 'rgba(0,0,0,0.9)';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.fillStyle = '#ff4400';
+            this.ctx.font = 'bold 48px "Press Start 2P", monospace';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 50);
+            this.ctx.fillStyle = '#ffaa44';
+            this.ctx.font = '24px "Press Start 2P", monospace';
+            this.ctx.fillText(`SCORE: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2 + 30);
+            this.ctx.fillText(`KILLS: ${this.kills}`, this.canvas.width / 2, this.canvas.height / 2 + 70);
+            this.ctx.font = '14px monospace';
+            this.ctx.fillStyle = '#888888';
+            this.ctx.fillText('PRESS F5 TO RESTART', this.canvas.width / 2, this.canvas.height / 2 + 130);
+            this.ctx.textAlign = 'left';
+        }
+    }
+    
+    gameLoop() {
+        this.update();
+        this.draw();
+        requestAnimationFrame(() => this.gameLoop());
+    }
+}
+
+new Game();
