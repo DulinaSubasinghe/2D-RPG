@@ -1614,3 +1614,104 @@ class Game {
             }
         }
     }
+
+    drawFireZones() {
+        for (let zone of this.fireZones) {
+            const x = zone.x - this.camera.x;
+            const y = zone.y - this.camera.y;
+            const intensity = zone.life / zone.maxLife;
+            this.ctx.fillStyle = `rgba(255, 80, 0, ${0.3 * intensity})`;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, zone.radius, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.fillStyle = `rgba(255, 100, 0, ${0.6 * intensity})`;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, zone.radius - 10, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.fillStyle = `rgba(255, 200, 0, ${0.8 * intensity})`;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, zone.radius - 20, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+    }
+    
+    drawSmoke() {
+        for (let smoke of this.smokeParticles) {
+            const x = smoke.x - this.camera.x;
+            const y = smoke.y - this.camera.y;
+            const opacity = smoke.opacity * (smoke.life / 100);
+            this.ctx.fillStyle = `rgba(40, 35, 30, ${opacity * 0.6})`;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, smoke.size, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.fillStyle = `rgba(60, 55, 50, ${opacity * 0.3})`;
+            this.ctx.beginPath();
+            this.ctx.arc(x - 2, y - 1, smoke.size * 0.7, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+    }
+    
+    drawMolotovPickups() {
+        for (let pickup of this.molotovPickups) {
+            const x = pickup.x - this.camera.x;
+            const y = pickup.y - this.camera.y;
+            const floatY = Math.sin(Date.now() * 0.008) * 3;
+            this.ctx.fillStyle = '#ff4400';
+            this.ctx.fillRect(x - 6, y - 6 + floatY, 12, 12);
+            this.ctx.fillStyle = '#ff8800';
+            this.ctx.fillRect(x - 3, y - 3 + floatY, 6, 6);
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.font = 'bold 12px monospace';
+            this.ctx.fillText('🔥', x - 4, y + 5 + floatY);
+        }
+    }
+    
+    drawBloodSplatters() {
+        for (let blood of this.bloodSplatters) {
+            const opacity = Math.min(1, blood.life / blood.maxLife);
+            this.ctx.fillStyle = blood.color;
+            this.ctx.globalAlpha = opacity;
+            this.ctx.fillRect(blood.x - blood.size/2 - this.camera.x, blood.y - blood.size/2 - this.camera.y, blood.size, blood.size);
+            if (blood.size > 8) {
+                this.ctx.fillStyle = '#aa0000';
+                this.ctx.fillRect(blood.x - blood.size/4 - this.camera.x, blood.y - blood.size/4 - this.camera.y, blood.size/2, blood.size/2);
+            }
+        }
+        this.ctx.globalAlpha = 1;
+    }
+    
+    drawEnemies() {
+        for (let enemy of this.enemies) {
+            const x = enemy.x - this.camera.x;
+            const y = enemy.y - this.camera.y;
+            
+            if (enemy.hitFlash > 0) {
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.globalAlpha = 0.6;
+                this.ctx.fillRect(x, y, enemy.size, enemy.size);
+                this.ctx.globalAlpha = 1;
+            }
+            
+            this.ctx.fillStyle = enemy.color;
+            this.ctx.fillRect(x, y, enemy.size, enemy.size);
+            this.ctx.fillStyle = '#2a1a0a';
+            this.ctx.fillRect(x + 6, y + 8, 4, 4);
+            this.ctx.fillRect(x + enemy.size - 10, y + 8, 4, 4);
+            this.ctx.fillStyle = '#ff0000';
+            this.ctx.fillRect(x + 5, y + 5, 3, 3);
+            this.ctx.fillRect(x + enemy.size - 8, y + 5, 3, 3);
+            if (enemy.type === 'brute') {
+                this.ctx.fillStyle = '#aa4422';
+                this.ctx.fillRect(x + 12, y + 15, 6, 8);
+            }
+            const healthPercent = enemy.health / enemy.maxHealth;
+            this.ctx.fillStyle = '#330000';
+            this.ctx.fillRect(x, y - 8, enemy.size, 4);
+            this.ctx.fillStyle = '#ff4444';
+            this.ctx.fillRect(x, y - 8, enemy.size * healthPercent, 4);
+            if (enemy.type === 'fast zombie') {
+                this.ctx.fillStyle = '#ffff00';
+                this.ctx.fillRect(x + enemy.size/2 - 3, y - 4, 6, 3);
+            }
+        }
+    }
