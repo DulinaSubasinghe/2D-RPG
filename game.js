@@ -14,11 +14,6 @@ class Game {
         
         this.camera = { x: 0, y: 0, targetX: 0, targetY: 0 };
         
-        // Day/Night Cycle
-        this.timeOfDay = 0; // 0 to 360 degrees
-        this.daySpeed = 0.05; // Speed of day/night cycle
-        this.ambientLight = 1;
-        
         // Weather System
         this.rainParticles = [];
         this.isRaining = true;
@@ -328,51 +323,6 @@ class Game {
             this.ctx.stroke();
         }
         this.ctx.restore();
-    }
-    
-    // ============ DAY/NIGHT CYCLE ============
-    updateDayNight() {
-        this.timeOfDay += this.daySpeed;
-        if (this.timeOfDay > 360) this.timeOfDay -= 360;
-        
-        // Calculate ambient light based on time of day
-        const angle = (this.timeOfDay / 360) * Math.PI * 2;
-        this.ambientLight = 0.4 + 0.5 * (0.5 + 0.5 * Math.sin(angle));
-        this.ambientLight = Math.max(0.3, Math.min(1, this.ambientLight));
-    }
-    
-    drawDayNightOverlay() {
-        // Draw dark overlay based on time
-        const darkness = 1 - this.ambientLight;
-        this.ctx.fillStyle = `rgba(0, 0, 20, ${darkness * 0.5})`;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // Moon or sun indicator
-        const angle = (this.timeOfDay / 360) * Math.PI * 2;
-        const sunX = this.canvas.width * (0.5 + 0.4 * Math.cos(angle));
-        const sunY = this.canvas.height * (0.5 + 0.4 * Math.sin(angle));
-        
-        if (this.ambientLight < 0.6) {
-            // Moon
-            this.ctx.fillStyle = 'rgba(200, 200, 220, 0.3)';
-            this.ctx.beginPath();
-            this.ctx.arc(sunX, sunY, 20, 0, Math.PI * 2);
-            this.ctx.fill();
-            this.ctx.fillStyle = 'rgba(200, 200, 220, 0.1)';
-            this.ctx.beginPath();
-            this.ctx.arc(sunX - 5, sunY - 3, 20, 0, Math.PI * 2);
-            this.ctx.fill();
-        } else {
-            // Sun
-            this.ctx.fillStyle = 'rgba(255, 200, 50, 0.15)';
-            this.ctx.beginPath();
-            this.ctx.arc(sunX, sunY, 40, 0, Math.PI * 2);
-            this.ctx.fill();
-            this.ctx.fillStyle = 'rgba(255, 200, 50, 0.2)';
-            this.ctx.beginPath();
-            this.ctx.arc(sunX, sunY, 25, 0, Math.PI * 2);
-            this.ctx.fill();
-        }
     }
     
     drawPauseMenu() {
@@ -1581,7 +1531,6 @@ class Game {
         this.updateSpawnAnimations();
         this.updateFloatingNumbers();
         this.updateRain();
-        this.updateDayNight();
         this.updateCamera();
         this.updateWarnings();
         
@@ -2103,9 +2052,7 @@ class Game {
         this.drawMolotovProjectiles();
         this.drawParticles();
         this.drawFloatingNumbers();
-        this.drawRain();
-        this.drawDayNightOverlay();
-        
+        this.drawRain();        
         this.drawMinimap();
         this.drawWaveMessage();
         
@@ -2117,12 +2064,6 @@ class Game {
         this.ctx.textAlign = 'right';
         this.ctx.fillText(`WAVE ${this.wave}`, this.canvas.width - 20, 15);
         this.ctx.textAlign = 'left';
-        
-        // Time of day display
-        this.ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        this.ctx.font = '8px monospace';
-        const timeDisplay = this.ambientLight > 0.6 ? 'DAY' : 'NIGHT';
-        this.ctx.fillText(timeDisplay, this.canvas.width - 20, 55);
         
         if (this.waveInProgress) {
             this.ctx.fillStyle = '#ff6666';
