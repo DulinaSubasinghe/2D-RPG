@@ -8,14 +8,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Game Canvas -->
     <canvas id="gameCanvas"></canvas>
+    
+    <!-- Custom Crosshair -->
     <div id="crosshair"></div>
+    
+    <!-- Fog Overlay -->
     <div class="fog-overlay" id="fogOverlay"></div>
+    
+    <!-- Vignette Effect -->
     <div class="vignette"></div>
+    
+    <!-- Scanline Effect -->
     <div class="scanlines"></div>
+    
+    <!-- Heat Haze / Chaos Effect -->
     <div class="chaos-effect"></div>
-
+    
+    <!-- Simple Top-Left UI -->
     <div class="ui-top-left">
+        <!-- Health Bar -->
         <div class="health-container">
             <div class="health-label">❤️ HEALTH</div>
             <div class="health-bar-bg">
@@ -23,6 +36,8 @@
             </div>
             <div class="health-value" id="healthValue">100</div>
         </div>
+        
+        <!-- Weapon & Ammo -->
         <div class="weapon-container">
             <div class="weapon-icon" id="weaponIcon">🔫</div>
             <div class="weapon-info">
@@ -39,27 +54,16 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Molotov Counter -->
         <div class="molotov-container">
             <div class="molotov-icon">🔥</div>
             <div class="molotov-count" id="molotovCount">3</div>
             <div class="molotov-key">[F]</div>
         </div>
-        <div class="kills-container">
-            <div class="kills-icon">💀</div>
-            <div class="kills-info">
-                <div class="kills-label">TOTAL KILLS</div>
-                <div class="kills-value" id="killsValue">0</div>
-            </div>
-        </div>
-
-        <div class="stats-container">
-            <div class="stat-item">
-                <div class="stat-label">SCORE</div>
-                <div class="stat-value" id="scoreValue">0</div>
-            </div>
-        </div>
     </div>
 
+    <!-- Reload Circular -->
     <div class="reload-circular" id="reloadCircular">
         <svg class="reload-svg" viewBox="0 0 100 100">
             <circle class="reload-bg" cx="50" cy="50" r="45" />
@@ -67,23 +71,38 @@
         </svg>
         <div class="reload-text">R</div>
     </div>
-    
+
+    <!-- Warnings -->
     <div class="warning low-ammo" id="lowAmmoWarning"><span>⚠️ RELOAD! ⚠️</span></div>
     <div class="warning low-health" id="lowHealthWarning"><span>💀 CRITICAL HEALTH 💀</span></div>
 
+    <!-- Damage Flash & Hit Marker (ONLY ONCE) -->
     <div class="damage-flash" id="damageFlash"></div>
     <div class="hit-marker" id="hitMarker"></div>
-
-    <div class="controls-hint">
-        <div class="control-key">WASD</div><span>✦</span>
-        <div class="control-key">🖱️ AIM</div><span>✦</span>
-        <div class="control-key">🔫 HOLD LMB</div><span>✦</span>
-        <div class="control-key">R RELOAD</div><span>✦</span>
-        <div class="control-key">F 🔥</div><span>✦</span>
-        <div class="control-key">P ⏸️</div>
+    
+    <div class="stats-container">
+    <div class="stat-item">
+        <span class="stat-label">SCORE</span>
+        <span class="stat-value" id="scoreValue">0</span>
     </div>
+    <div class="stat-item">
+        <span class="stat-label">KILLS</span>
+        <span class="stat-value" id="killsValue">0</span>
+    </div>
+</div>
 
+
+    <!-- Controls Hint -->
+    <div class="controls-hint">
+        <div class="control-key">WASD</div>
+        <span>✦</span>
+        <div class="control-key">🖱️ AIM</div>
+        <span>✦</span>
+        <div class="control-key">🔫 HOLD LMB</div>
+        <span>✦</span>
+        <div class="control-key">R RELOAD</div>
+    </div>
+    
     <script src="game.js"></script>
 </body>
-    
 </html>

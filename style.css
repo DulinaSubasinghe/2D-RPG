@@ -12,6 +12,7 @@ body {
     position: relative;
 }
 
+/* Game Canvas */
 #gameCanvas {
     display: block;
     position: fixed;
@@ -27,6 +28,7 @@ body {
     image-rendering: optimizeSpeed;
 }
 
+/* Crosshair */
 #crosshair {
     position: fixed;
     width: 32px;
@@ -36,6 +38,7 @@ body {
     transform: translate(-50%, -50%);
 }
 
+/* Outer Circle */
 #crosshair::before {
     content: '';
     position: absolute;
@@ -62,6 +65,7 @@ body {
     box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
 }
 
+/* Plus Sign - Horizontal Line */
 #crosshair .dot {
     position: absolute;
     top: 50%;
@@ -73,6 +77,7 @@ body {
     box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
 }
 
+/* Fog Overlay */
 .fog-overlay {
     position: fixed;
     top: 0;
@@ -97,6 +102,7 @@ body {
     100% { opacity: 0.8; background-position: 5% 5%; }
 }
 
+/* Vignette Effect */
 .vignette {
     position: fixed;
     top: 0;
@@ -108,6 +114,7 @@ body {
     z-index: 15;
 }
 
+/* Scanline Effect */
 .scanlines {
     position: fixed;
     top: 0;
@@ -126,6 +133,7 @@ body {
     opacity: 0.4;
 }
 
+/* Chaos Effect (Heat Haze) */
 .chaos-effect {
     position: fixed;
     top: 0;
@@ -143,6 +151,12 @@ body {
     animation: chaosPulse 3s ease-in-out infinite;
 }
 
+@keyframes chaosPulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+
+/* Controls Hint - Bottom Right */
 .controls-hint {
     position: fixed;
     bottom: 20px;
@@ -172,6 +186,7 @@ body {
     font-size: 8px;
 }
 
+/* Top Left UI Panel */
 .ui-top-left {
     position: fixed;
     top: 20px;
@@ -186,6 +201,7 @@ body {
     min-width: 240px;
 }
 
+/* Health Container */
 .health-container {
     display: flex;
     align-items: center;
@@ -225,6 +241,7 @@ body {
     text-align: right;
 }
 
+/* Weapon Container */
 .weapon-container {
     margin-bottom: 10px;
     padding-bottom: 8px;
@@ -291,6 +308,7 @@ body {
     transition: width 0.1s ease;
 }
 
+/* Molotov Container */
 .molotov-container {
     display: flex;
     align-items: center;
@@ -316,6 +334,7 @@ body {
     border-radius: 4px;
 }
 
+/* Stats Container (Score & Kills) */
 .stats-container {
     display: flex;
     gap: 20px;
@@ -343,6 +362,7 @@ body {
     font-family: 'Press Start 2P', monospace;
 }
 
+/* Reload Circular */
 .reload-circular {
     position: fixed;
     bottom: 30px;
@@ -392,6 +412,7 @@ body {
     font-family: 'Press Start 2P', monospace;
 }
 
+/* Warnings */
 .warning {
     position: fixed;
     top: 80px;
@@ -434,37 +455,7 @@ body {
     50% { transform: translateX(-50%) scale(1.05); opacity: 0.8; }
 }
 
-.kills-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.kills-icon {
-    font-size: 20px;
-}
-
-.kills-info {
-    flex: 1;
-}
-
-.kills-label {
-    font-size: 8px;
-    color: rgba(255, 255, 255, 0.5);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-}
-
-.kills-value {
-    font-size: 18px;
-    font-weight: bold;
-    color: #ff4444;
-    font-family: 'Press Start 2P', monospace;
-}
-
+/* Damage Flash */
 .damage-flash {
     position: fixed;
     top: 0;
@@ -481,6 +472,7 @@ body {
     background: rgba(220, 38, 38, 0.4);
 }
 
+/* Hit Marker */
 .hit-marker {
     position: fixed;
     top: 50%;
@@ -527,11 +519,13 @@ body {
     100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
 }
 
+/* Fire Glow Effect */
 @keyframes fireGlow {
     0%, 100% { filter: drop-shadow(0 0 5px #ff4400); }
     50% { filter: drop-shadow(0 0 15px #ff6600); }
 }
 
+/* Mobile Responsive */
 @media (max-width: 768px) {
     .ui-top-left {
         padding: 8px 12px;

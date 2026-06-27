@@ -1,28 +1,41 @@
 class Game {
-  constructor() {
-    this.canvas = document.getElementById('gameCanvas');
-    this.ctx = this.canvas.getContext('2d');
-
-    this.resizeCanvas();
-    window.addEvenListener('resize', () => this.resizeCanvas());
-
-    this.ctx.imageSmoothingEnabled = false;
-
-    this.worldWidth = 5000;
-    this.worldHeight = 5000;
-    this.spawningEnemies = [];
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        
+        this.resizeCanvas();
+        window.addEventListener('resize', () => this.resizeCanvas());
+        
+        this.ctx.imageSmoothingEnabled = false;
+    
+        this.worldWidth = 5000;
+        this.worldHeight = 5000;
+        this.spawningEnemies = [];
         
         this.camera = { x: 0, y: 0, targetX: 0, targetY: 0 };
+        
+        // Day/Night Cycle
+        this.timeOfDay = 0; // 0 to 360 degrees
+        this.daySpeed = 0.05; // Speed of day/night cycle
+        this.ambientLight = 1;
+        
+        // Weather System
+        this.rainParticles = [];
+        this.isRaining = true;
+        this.rainIntensity = 0.5;
         
         this.player = {
             x: this.worldWidth / 2,
             y: this.worldHeight / 2,
-            size: 28,
+            size: 32,
             speed: 5,
             health: 100,
             maxHealth: 100,
             invincibleTimer: 0,
-            walkBob: 0
+            walkBob: 0,
+            direction: 'down',
+            frame: 0,
+            frameTimer: 0
         };
         
         this.currentWeapon = 'mg';
@@ -114,10 +127,8 @@ class Game {
         this.kills = 0;
         this.gameOver = false;
         
-        // Floating damage numbers
         this.floatingNumbers = [];
         
-        // Tutorial
         this.tutorialSeen = localStorage.getItem('tutorialSeen') === 'true';
         this.showTutorial = !this.tutorialSeen;
         
@@ -156,6 +167,7 @@ class Game {
         this.updateUI();
         this.gameLoop();
     }
+    
     setupAudio() {
         document.body.addEventListener('click', () => {
             if (!this.audioContext) {
@@ -279,6 +291,90 @@ class Game {
             this.paused = !this.paused;
         }
     }
+    
+    // ============ RAIN SYSTEM ============
+    spawnRain() {
+        for (let i = 0; i < 400; i++) {
+            this.rainParticles.push({
+                x: Math.random() * this.canvas.width,
+                y: Math.random() * this.canvas.height,
+                speed: 15 + Math.random() * 10,
+                length: 15 + Math.random() * 20,
+                opacity: 0.2 + Math.random() * 0.3
+            });
+        }
+    }
+    
+    updateRain() {
+        for (let rain of this.rainParticles) {
+            rain.x -= rain.speed * 0.3;
+            rain.y += rain.speed * 0.8;
+            if (rain.y > this.canvas.height) {
+                rain.y = -rain.length;
+                rain.x = Math.random() * this.canvas.width;
+            }
+        }
+    }
+    
+    drawRain() {
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.6;
+        this.ctx.strokeStyle = 'rgba(180, 200, 255, 0.3)';
+        this.ctx.lineWidth = 1;
+        for (let rain of this.rainParticles) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(rain.x, rain.y);
+            this.ctx.lineTo(rain.x + rain.speed * 0.4, rain.y + rain.length);
+            this.ctx.stroke();
+        }
+        this.ctx.restore();
+    }
+    
+    // ============ DAY/NIGHT CYCLE ============
+    updateDayNight() {
+        this.timeOfDay += this.daySpeed;
+        if (this.timeOfDay > 360) this.timeOfDay -= 360;
+        
+        // Calculate ambient light based on time of day
+        const angle = (this.timeOfDay / 360) * Math.PI * 2;
+        this.ambientLight = 0.4 + 0.5 * (0.5 + 0.5 * Math.sin(angle));
+        this.ambientLight = Math.max(0.3, Math.min(1, this.ambientLight));
+    }
+    
+    drawDayNightOverlay() {
+        // Draw dark overlay based on time
+        const darkness = 1 - this.ambientLight;
+        this.ctx.fillStyle = `rgba(0, 0, 20, ${darkness * 0.5})`;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Moon or sun indicator
+        const angle = (this.timeOfDay / 360) * Math.PI * 2;
+        const sunX = this.canvas.width * (0.5 + 0.4 * Math.cos(angle));
+        const sunY = this.canvas.height * (0.5 + 0.4 * Math.sin(angle));
+        
+        if (this.ambientLight < 0.6) {
+            // Moon
+            this.ctx.fillStyle = 'rgba(200, 200, 220, 0.3)';
+            this.ctx.beginPath();
+            this.ctx.arc(sunX, sunY, 20, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.fillStyle = 'rgba(200, 200, 220, 0.1)';
+            this.ctx.beginPath();
+            this.ctx.arc(sunX - 5, sunY - 3, 20, 0, Math.PI * 2);
+            this.ctx.fill();
+        } else {
+            // Sun
+            this.ctx.fillStyle = 'rgba(255, 200, 50, 0.15)';
+            this.ctx.beginPath();
+            this.ctx.arc(sunX, sunY, 40, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.fillStyle = 'rgba(255, 200, 50, 0.2)';
+            this.ctx.beginPath();
+            this.ctx.arc(sunX, sunY, 25, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+    }
+    
     drawPauseMenu() {
         if (!this.paused) return;
         
@@ -341,6 +437,7 @@ class Game {
     closeTutorial() {
         this.showTutorial = false;
         localStorage.setItem('tutorialSeen', 'true');
+        this.spawnRain();
     }
     
     drawMinimap() {
@@ -436,6 +533,7 @@ class Game {
         this.ctx.font = '8px "Press Start 2P", monospace';
         this.ctx.fillText('RADAR', mapX + 5, mapY + 15);
     }
+    
     switchWeapon(weapon) {
         if (weapon === 'mg' && this.currentWeapon !== 'mg') {
             this.currentWeapon = 'mg';
@@ -548,7 +646,7 @@ class Game {
     }
     
     startWave() {
-        if (this.waveInProgress) return; // Prevent double start
+        if (this.waveInProgress) return;
         this.waveInProgress = true;
         this.waveSpawningComplete = false;
         this.enemiesToSpawn = Math.floor(5 + this.wave * 1.5);
@@ -566,7 +664,7 @@ class Game {
             this.spawnWaveEnemies();
         }
     }
-
+    
     spawnWaveEnemies() {
         const types = [
             { color: '#4a3a2a', speed: 1.2, health: 50, size: 26, name: 'zombie', damage: 12 },
@@ -604,7 +702,7 @@ class Game {
                 if (spawnedCount === this.enemiesToSpawn) {
                     this.waveSpawningComplete = true;
                 }
-            }, i * 300);
+            }, i * 500); // Slower spawn for dramatic effect
         }
         if (this.enemiesToSpawn === 0) this.waveSpawningComplete = true;
     }
@@ -693,7 +791,7 @@ class Game {
             this.waveMessageTimer--;
         }
     }
-
+    
     spawnAmmoPickups() {
         for (let i = 0; i < 12; i++) {
             let valid = false;
@@ -805,7 +903,7 @@ class Game {
             clone.play().catch(() => {});
         }
     }
-
+    
     shoot() {
         if (this.ammo.reloading || this.ammo.current <= 0 || this.shootCooldown > 0) {
             if (this.ammo.current <= 0) {
@@ -951,9 +1049,21 @@ class Game {
     updatePlayer() {
         if (this.keys.w || this.keys.s || this.keys.a || this.keys.d) {
             this.player.walkBob = Math.sin(Date.now() * 0.015) * 2;
+            this.player.frameTimer++;
+            if (this.player.frameTimer > 8) {
+                this.player.frameTimer = 0;
+                this.player.frame = (this.player.frame + 1) % 4;
+            }
         } else {
             this.player.walkBob = 0;
+            this.player.frame = 0;
         }
+        
+        if (this.keys.w) this.player.direction = 'up';
+        else if (this.keys.s) this.player.direction = 'down';
+        else if (this.keys.a) this.player.direction = 'left';
+        else if (this.keys.d) this.player.direction = 'right';
+        
         if (this.player.invincibleTimer > 0) this.player.invincibleTimer--;
         let newX = this.player.x;
         let newY = this.player.y;
@@ -1004,7 +1114,7 @@ class Game {
             }
         }
     }
-
+    
     updateShooting() {
         if (this.shooting && !this.gameOver) this.shoot();
         if (this.shootCooldown > 0) this.shootCooldown--;
@@ -1082,9 +1192,39 @@ class Game {
     }
     
     spawnZombieFromGround(x, y, enemyType) {
-        for (let i = 0; i < 20; i++) this.particles.push({ x: x + (Math.random() - 0.5) * 30, y: y + (Math.random() - 0.5) * 20, vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.5) * 4 - 2, life: 30, color: '#8B6914', size: 3 + Math.random() * 4 });
-        for (let i = 0; i < 15; i++) this.particles.push({ x: x + (Math.random() - 0.5) * 25, y: y - 10 + Math.random() * 20, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 3 - 1, life: 25, color: '#6B4226', size: 4 + Math.random() * 6 });
-        this.spawningEnemies.push({ enemy: enemyType, x: x, y: y, spawnTimer: 90 + Math.random() * 40, emerged: false });
+        // Enhanced spawning particles - dirt explosion
+        for (let i = 0; i < 30; i++) {
+            this.particles.push({
+                x: x + (Math.random() - 0.5) * 40,
+                y: y + (Math.random() - 0.5) * 30,
+                vx: (Math.random() - 0.5) * 4,
+                vy: (Math.random() - 0.5) * 5 - 3,
+                life: 40,
+                color: '#8B6914',
+                size: 2 + Math.random() * 5
+            });
+        }
+        for (let i = 0; i < 20; i++) {
+            this.particles.push({
+                x: x + (Math.random() - 0.5) * 35,
+                y: y + (Math.random() - 0.5) * 25,
+                vx: (Math.random() - 0.5) * 3,
+                vy: -Math.random() * 4 - 2,
+                life: 35,
+                color: '#6B4226',
+                size: 3 + Math.random() * 6
+            });
+        }
+        
+        this.spawningEnemies.push({ 
+            enemy: enemyType, 
+            x: x, 
+            y: y, 
+            spawnTimer: 120 + Math.random() * 30, // Slower, more dramatic
+            emerged: false,
+            handTimer: 0,
+            headTimer: 0
+        });
         this.playSound('zombie', 0.2);
     }
     
@@ -1092,13 +1232,67 @@ class Game {
         for (let i = 0; i < this.spawningEnemies.length; i++) {
             const spawn = this.spawningEnemies[i];
             spawn.spawnTimer--;
-            if (spawn.spawnTimer > 0 && spawn.spawnTimer % 8 === 0) this.particles.push({ x: spawn.x + (Math.random() - 0.5) * 20, y: spawn.y + 10 - Math.random() * 15, vx: (Math.random() - 0.5) * 1.5, vy: -Math.random() * 2, life: 20, color: '#8B6914', size: 3 });
-            if (spawn.spawnTimer === 60 && !spawn.emerged) for (let p = 0; p < 8; p++) this.particles.push({ x: spawn.x + (Math.random() - 0.5) * 25, y: spawn.y + 5, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 3 - 1, life: 15, color: '#8B5A2B', size: 2 });
-            if (spawn.spawnTimer === 40 && !spawn.emerged) for (let p = 0; p < 12; p++) this.particles.push({ x: spawn.x + (Math.random() - 0.5) * 30, y: spawn.y + 8, vx: (Math.random() - 0.5) * 2.5, vy: -Math.random() * 4 - 1, life: 18, color: '#6B4226', size: 3 });
+            
+            // Dirt particles rising during spawn
+            if (spawn.spawnTimer > 0 && spawn.spawnTimer % 6 === 0) {
+                this.particles.push({
+                    x: spawn.x + (Math.random() - 0.5) * 30,
+                    y: spawn.y + 10 - Math.random() * 20,
+                    vx: (Math.random() - 0.5) * 1.5,
+                    vy: -Math.random() * 2 - 1,
+                    life: 25,
+                    color: '#8B6914',
+                    size: 2 + Math.random() * 4
+                });
+            }
+            
+            // Hands emerge from ground (at 80 frames remaining)
+            if (spawn.spawnTimer === 80 && !spawn.emerged) {
+                for (let p = 0; p < 10; p++) {
+                    this.particles.push({
+                        x: spawn.x + (Math.random() - 0.5) * 30,
+                        y: spawn.y + 5,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: -Math.random() * 3 - 1,
+                        life: 20,
+                        color: '#8B5A2B',
+                        size: 2
+                    });
+                }
+            }
+            
+            // Head emerges (at 50 frames remaining)
+            if (spawn.spawnTimer === 50 && !spawn.emerged) {
+                for (let p = 0; p < 15; p++) {
+                    this.particles.push({
+                        x: spawn.x + (Math.random() - 0.5) * 35,
+                        y: spawn.y + 5 + Math.random() * 10,
+                        vx: (Math.random() - 0.5) * 2.5,
+                        vy: -Math.random() * 4 - 2,
+                        life: 25,
+                        color: '#6B4226',
+                        size: 3
+                    });
+                }
+            }
+            
             if (spawn.spawnTimer <= 0 && !spawn.emerged) {
                 spawn.emerged = true;
                 this.enemies.push(spawn.enemy);
-                for (let p = 0; p < 40; p++) this.particles.push({ x: spawn.x + (Math.random() - 0.5) * 45, y: spawn.y + (Math.random() - 0.5) * 30, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 7 - 4, life: 30, color: '#6B4226', size: 3 + Math.random() * 6 });
+                
+                // Dramatic final dirt explosion
+                for (let p = 0; p < 50; p++) {
+                    this.particles.push({
+                        x: spawn.x + (Math.random() - 0.5) * 55,
+                        y: spawn.y + (Math.random() - 0.5) * 40,
+                        vx: (Math.random() - 0.5) * 7,
+                        vy: (Math.random() - 0.5) * 8 - 5,
+                        life: 35,
+                        color: '#6B4226',
+                        size: 3 + Math.random() * 6
+                    });
+                }
+                
                 this.spawningEnemies.splice(i, 1);
                 i--;
             }
@@ -1109,29 +1303,47 @@ class Game {
         for (let spawn of this.spawningEnemies) {
             const x = spawn.x - this.camera.x;
             const y = spawn.y - this.camera.y;
-            const progress = 1 - (spawn.spawnTimer / 90);
-            const enemyHeight = spawn.enemy.size * progress;
-            const enemyY = y + spawn.enemy.size - enemyHeight;
-            this.ctx.fillStyle = spawn.enemy.color;
-            this.ctx.fillRect(x, enemyY, spawn.enemy.size, enemyHeight);
-            const moundSize = 8 + (progress * 10);
+            const progress = 1 - (spawn.spawnTimer / 120);
+            
+            // Dirt mound grows as zombie emerges
+            const moundSize = 10 + (progress * 20);
             this.ctx.fillStyle = '#8B6914';
             this.ctx.beginPath();
-            this.ctx.ellipse(x + spawn.enemy.size/2, y + spawn.enemy.size - 3, moundSize, 6, 0, 0, Math.PI * 2);
+            this.ctx.ellipse(x + spawn.enemy.size/2, y + spawn.enemy.size - 3, moundSize, 8 + progress * 6, 0, 0, Math.PI * 2);
             this.ctx.fill();
-            if (progress > 0.3) {
+            
+            // Darker dirt on top
+            this.ctx.fillStyle = '#6B4226';
+            this.ctx.beginPath();
+            this.ctx.ellipse(x + spawn.enemy.size/2, y + spawn.enemy.size - 5, moundSize * 0.7, 5 + progress * 4, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Body emerging
+            const enemyHeight = spawn.enemy.size * progress;
+            const enemyY = y + spawn.enemy.size - enemyHeight;
+            
+            this.ctx.fillStyle = spawn.enemy.color;
+            this.ctx.fillRect(x, enemyY, spawn.enemy.size, enemyHeight);
+            
+            // Emerging hands (appear at 40% progress)
+            if (progress > 0.4) {
                 this.ctx.fillStyle = '#2a1a0a';
-                this.ctx.fillRect(x - 5, enemyY + 5, 5, 8);
-                this.ctx.fillRect(x + spawn.enemy.size, enemyY + 5, 5, 8);
+                this.ctx.fillRect(x - 5, enemyY + 8, 5, 10);
+                this.ctx.fillRect(x + spawn.enemy.size, enemyY + 8, 5, 10);
             }
+            
+            // Emerging head (appears at 60% progress)
             if (progress > 0.6) {
+                this.ctx.fillStyle = '#4a3a2a';
+                this.ctx.fillRect(x + 4, enemyY - 2, 18, 8);
+                // Red eyes
                 this.ctx.fillStyle = '#ff0000';
-                this.ctx.fillRect(x + 5, enemyY + 2, 3, 3);
-                this.ctx.fillRect(x + spawn.enemy.size - 8, enemyY + 2, 3, 3);
+                this.ctx.fillRect(x + 7, enemyY + 2, 3, 3);
+                this.ctx.fillRect(x + 16, enemyY + 2, 3, 3);
             }
         }
     }
-
+    
     updateBullets() {
         for (let i = 0; i < this.bullets.length; i++) {
             const bullet = this.bullets[i];
@@ -1192,8 +1404,7 @@ class Game {
     }
     
     spawnSingleEnemy() {
-        // This function is not used – wave system handles all spawning.
-        // Kept for reference but never called.
+        // Not used – wave system handles spawning
     }
     
     updateEnemies() {
@@ -1301,7 +1512,7 @@ class Game {
             }
         }
     }
-
+    
     updateUI() {
         const healthPercent = this.player.health / this.player.maxHealth;
         if (this.healthFill) this.healthFill.style.width = (healthPercent * 100) + '%';
@@ -1369,6 +1580,8 @@ class Game {
         this.updateBloodSplatters();
         this.updateSpawnAnimations();
         this.updateFloatingNumbers();
+        this.updateRain();
+        this.updateDayNight();
         this.updateCamera();
         this.updateWarnings();
         
@@ -1400,7 +1613,6 @@ class Game {
                 }
             }
         }
-        // Draw craters
         for (let c of this.craters) {
             this.ctx.fillStyle = '#1a0a00';
             this.ctx.beginPath();
@@ -1444,7 +1656,7 @@ class Game {
             }
         }
     }
-
+    
     drawTrees() {
         for (let tree of this.trees) {
             const x = tree.x - this.camera.x;
@@ -1614,7 +1826,7 @@ class Game {
             }
         }
     }
-
+    
     drawFireZones() {
         for (let zone of this.fireZones) {
             const x = zone.x - this.camera.x;
@@ -1715,60 +1927,103 @@ class Game {
             }
         }
     }
-
+    
     drawPlayer() {
         const x = this.player.x - this.camera.x;
         const y = this.player.y - this.camera.y + this.player.walkBob;
-        this.ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        this.ctx.fillRect(x + 6, y + 28, 18, 6);
-        if (this.player.invincibleTimer > 0 && Math.floor(Date.now() / 50) % 2 === 0) this.ctx.fillStyle = '#ffffff';
-        else this.ctx.fillStyle = '#5a7a4a';
+        
+        // Shadow
+        this.ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        this.ctx.fillRect(x + 6, y + 28, 20, 6);
+        
+        // Body flash when invincible
+        if (this.player.invincibleTimer > 0 && Math.floor(Date.now() / 50) % 2 === 0) {
+            this.ctx.fillStyle = '#ffffff';
+        } else {
+            this.ctx.fillStyle = '#5a7a4a';
+        }
+        
+        // Main body
         this.ctx.fillRect(x, y, this.player.size, this.player.size);
+        
+        // Tactical Vest
         this.ctx.fillStyle = '#4a6a3a';
-        this.ctx.fillRect(x + 4, y + 8, 20, 16);
+        this.ctx.fillRect(x + 4, y + 8, 24, 16);
         this.ctx.fillStyle = '#3a5a2a';
         this.ctx.fillRect(x + 8, y + 12, 4, 8);
-        this.ctx.fillRect(x + 16, y + 12, 4, 8);
+        this.ctx.fillRect(x + 20, y + 12, 4, 8);
+        
+        // Backpack
+        this.ctx.fillStyle = '#3a4a3a';
+        this.ctx.fillRect(x + 2, y + 10, 4, 12);
+        this.ctx.fillRect(x + 26, y + 10, 4, 12);
+        
+        // Belt
         this.ctx.fillStyle = '#8B6914';
-        this.ctx.fillRect(x + 2, y + this.player.size - 8, 24, 4);
+        this.ctx.fillRect(x + 2, y + this.player.size - 8, 28, 4);
+        
+        // Helmet
         this.ctx.fillStyle = '#7a6a5a';
-        this.ctx.fillRect(x + 6, y + 2, 16, 8);
+        this.ctx.fillRect(x + 6, y + 2, 20, 8);
         this.ctx.fillStyle = '#6a5a4a';
-        this.ctx.fillRect(x + 8, y + 0, 12, 4);
+        this.ctx.fillRect(x + 8, y + 0, 16, 4);
+        // Helmet visor
+        this.ctx.fillStyle = '#4a8aaa';
+        this.ctx.fillRect(x + 10, y + 4, 12, 3);
+        
+        // Eyes (follow mouse)
         const angle = Math.atan2(this.mouseWorld.y - this.player.y, this.mouseWorld.x - this.player.x);
         const eyeX = Math.cos(angle) * 3;
         const eyeY = Math.sin(angle) * 3;
         this.ctx.fillStyle = '#ffffff';
-        this.ctx.fillRect(x + 8 + eyeX, y + 4 + eyeY, 3, 3);
-        this.ctx.fillRect(x + 18 + eyeX, y + 4 + eyeY, 3, 3);
+        this.ctx.fillRect(x + 9 + eyeX, y + 5 + eyeY, 3, 3);
+        this.ctx.fillRect(x + 20 + eyeX, y + 5 + eyeY, 3, 3);
         this.ctx.fillStyle = '#000000';
-        this.ctx.fillRect(x + 9 + eyeX, y + 5 + eyeY, 1, 1);
-        this.ctx.fillRect(x + 19 + eyeX, y + 5 + eyeY, 1, 1);
-        const gunLength = 18;
+        this.ctx.fillRect(x + 10 + eyeX, y + 6 + eyeY, 1, 1);
+        this.ctx.fillRect(x + 21 + eyeX, y + 6 + eyeY, 1, 1);
+        
+        // Gun
+        const gunLength = 20;
         const gunX = x + this.player.size/2;
         const gunY = y + this.player.size/2;
-        const gunTipX = gunX + Math.cos(angle) * gunLength;         
+        const gunTipX = gunX + Math.cos(angle) * gunLength;
         const gunTipY = gunY + Math.sin(angle) * gunLength;
+        
+        // Gun shadow
         this.ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        this.ctx.fillRect(gunTipX - 2, gunTipY - 1, 8, 4);
+        this.ctx.fillRect(gunTipX - 2, gunTipY - 1, 10, 4);
+        
+        // Gun body
         this.ctx.fillStyle = this.currentWeapon === 'mg' ? '#3a3a3a' : '#8B4513';
         this.ctx.fillRect(gunX - 3, gunY - 2, 8, 4);
+        
+        // Gun barrel
         this.ctx.fillStyle = '#2a2a2a';
         this.ctx.beginPath();
         this.ctx.moveTo(gunTipX - 2, gunTipY - 1);
-        this.ctx.lineTo(gunTipX + 6, gunTipY - 1);
-        this.ctx.lineTo(gunTipX + 6, gunTipY + 1);
+        this.ctx.lineTo(gunTipX + 8, gunTipY - 1);
+        this.ctx.lineTo(gunTipX + 8, gunTipY + 1);
         this.ctx.lineTo(gunTipX - 2, gunTipY + 1);
         this.ctx.fill();
+        
+        // Gun stock
         this.ctx.fillStyle = '#5a3a1a';
         this.ctx.fillRect(gunX - 6, gunY - 2, 4, 4);
+        
+        // Gun grip
         this.ctx.fillStyle = '#4a2a0a';
         this.ctx.fillRect(gunX - 2, gunY + 1, 3, 5);
+        
+        // Muzzle flash
         if (this.muzzleFlash.active) {
             this.ctx.fillStyle = '#ffff00';
-            this.ctx.fillRect(gunTipX + 2, gunTipY - 2, 6, 4);
+            this.ctx.fillRect(gunTipX + 2, gunTipY - 2, 8, 4);
             this.ctx.fillStyle = '#ff8800';
-            this.ctx.fillRect(gunTipX + 4, gunTipY - 1, 4, 2);
+            this.ctx.fillRect(gunTipX + 4, gunTipY - 1, 6, 2);
+            this.ctx.fillStyle = 'rgba(255, 200, 50, 0.3)';
+            this.ctx.beginPath();
+            this.ctx.arc(gunTipX + 4, gunTipY, 12, 0, Math.PI * 2);
+            this.ctx.fill();
         }
     }
     
@@ -1776,8 +2031,11 @@ class Game {
         for (let bullet of this.bullets) {
             this.ctx.fillStyle = bullet.weapon === 'shotgun' ? '#ffaa44' : '#ffcc00';
             this.ctx.fillRect(bullet.x - 2 - this.camera.x, bullet.y - 2 - this.camera.y, 4, 4);
-            this.ctx.fillStyle = '#ff8800';
-            this.ctx.fillRect(bullet.x - 1 - this.camera.x, bullet.y - 1 - this.camera.y, 2, 2);
+            // Glow
+            this.ctx.fillStyle = 'rgba(255, 200, 50, 0.2)';
+            this.ctx.beginPath();
+            this.ctx.arc(bullet.x - this.camera.x, bullet.y - this.camera.y, 6, 0, Math.PI * 2);
+            this.ctx.fill();
         }
     }
     
@@ -1828,7 +2086,7 @@ class Game {
         this.ctx.imageSmoothingEnabled = false;
         
         this.drawGround();
-        this.drawPonds();              // added
+        this.drawPonds();
         this.drawDecorations();
         this.drawBloodSplatters();
         this.drawTrees();
@@ -1845,6 +2103,8 @@ class Game {
         this.drawMolotovProjectiles();
         this.drawParticles();
         this.drawFloatingNumbers();
+        this.drawRain();
+        this.drawDayNightOverlay();
         
         this.drawMinimap();
         this.drawWaveMessage();
@@ -1857,6 +2117,12 @@ class Game {
         this.ctx.textAlign = 'right';
         this.ctx.fillText(`WAVE ${this.wave}`, this.canvas.width - 20, 15);
         this.ctx.textAlign = 'left';
+        
+        // Time of day display
+        this.ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        this.ctx.font = '8px monospace';
+        const timeDisplay = this.ambientLight > 0.6 ? 'DAY' : 'NIGHT';
+        this.ctx.fillText(timeDisplay, this.canvas.width - 20, 55);
         
         if (this.waveInProgress) {
             this.ctx.fillStyle = '#ff6666';
